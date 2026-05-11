@@ -1,2 +1,0 @@
-# Digitalads
-Digital Marketing company 
