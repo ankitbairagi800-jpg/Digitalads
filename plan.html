@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>30-Day Learning Plan — SpeakGuru AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <style>
+    /* Plan header */
+    .plan-header-card {
+      background: linear-gradient(135deg, rgba(108,62,244,0.2), rgba(59,130,246,0.12));
+      border: 1px solid rgba(108,62,244,0.3);
+      border-radius: var(--radius-2xl); padding: 32px;
+      margin-bottom: 28px; position: relative; overflow: hidden;
+    }
+    .plan-header-card::before {
+      content: ''; position: absolute; right: -40px; top: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(108,62,244,0.15), transparent 70%);
+    }
+
+    /* Week tabs */
+    .week-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .week-tab {
+      padding: 8px 20px; border-radius: 999px; cursor: pointer;
+      font-size: 13px; font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-secondary); transition: all 0.2s;
+    }
+    .week-tab:hover { border-color: var(--primary); color: white; }
+    .week-tab.active { background: rgba(108,62,244,0.2); border-color: var(--primary); color: var(--primary-light); }
+
+    /* Day cards */
+    .day-cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .day-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-xl); padding: 20px;
+      cursor: pointer; transition: all 0.25s; position: relative;
+      overflow: hidden;
+    }
+    .day-card:hover {
+      border-color: rgba(108,62,244,0.4);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card);
+    }
+    .day-card.completed {
+      border-color: rgba(34,197,94,0.3);
+      background: rgba(34,197,94,0.04);
+    }
+    .day-card.current {
+      border-color: var(--primary);
+      background: rgba(108,62,244,0.08);
+      box-shadow: 0 0 20px rgba(108,62,244,0.15);
+    }
+    .day-card.locked {
+      opacity: 0.45; cursor: not-allowed;
+    }
+    .day-card.locked:hover { transform: none; box-shadow: none; }
+    .day-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: var(--border);
+    }
+    .day-card.completed::before { background: var(--success); }
+    .day-card.current::before  { background: var(--primary); }
+
+    .day-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .day-num { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+    .day-status-icon { font-size: 20px; }
+    .day-type-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; margin-bottom: 8px;
+    }
+    .day-topic { font-size: 14px; font-weight: 700; color: white; line-height: 1.4; margin-bottom: 8px; }
+    .day-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); }
+    .day-score {
+      position: absolute; top: 16px; right: 16px;
+      font-size: 1.2rem; font-weight: 800;
+    }
+    .day-score.good { color: #22C55E; }
+    .day-score.avg  { color: #F59E0B; }
+    .day-score.low  { color: #EF4444; }
+
+    /* Detail slide panel */
+    .day-detail-panel {
+      position: fixed; right: -460px; top: 0; bottom: 0;
+      width: 440px; background: var(--bg-card);
+      border-left: 1px solid var(--border);
+      z-index: 200; padding: 24px;
+      overflow-y: auto; transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    .day-detail-panel.open { right: 0; }
+    .detail-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 199; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .detail-overlay.open { opacity: 1; pointer-events: all; }
+
+    /* Week progress bar */
+    .week-summary {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 24px;
+    }
+    .week-sum-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px; text-align: center;
+    }
+    .week-sum-icon { font-size: 24px; margin-bottom: 6px; }
+    .week-sum-val { font-size: 1.4rem; font-weight: 800; color: white; }
+    .week-sum-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    @media (max-width: 600px) {
+      .week-summary { grid-template-columns: repeat(2, 1fr); }
+      .day-cards-grid { grid-template-columns: 1fr; }
+      .day-detail-panel { width: 100%; right: -100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand">
+        <div class="brand-logo">🎤</div>
+        <span class="brand-name" style="font-size:1rem;">Speak<span>Guru</span></span>
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link"><span class="icon">📊</span> Dashboard</a>
+        <a href="practice.html" class="sidebar-link"><span class="icon">🎤</span> Practice Now</a>
+        <a href="plan.html" class="sidebar-link active"><span class="icon">🗓️</span> 30-Day Plan</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Progress</div>
+        <a href="history.html" class="sidebar-link"><span class="icon">📝</span> Session History</a>
+        <a href="assessment.html" class="sidebar-link"><span class="icon">📋</span> Re-Assessment</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="window.location.href='profile.html'">
+        <div class="avatar sidebar-avatar" id="sb-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sb-name">Loading...</div>
+          <div class="sidebar-user-level" id="sb-level">—</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <!-- Topbar -->
+    <div class="app-topbar">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:20px;" onclick="document.getElementById('sidebar').classList.toggle('open')">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h3 style="font-size:1.1rem;">🗓️ Your 30-Day Plan</h3>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <a href="practice.html" class="btn btn-primary btn-sm">
+          <i class="fas fa-microphone"></i> Practice Now
+        </a>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Plan Header -->
+      <div class="plan-header-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
+          <div>
+            <div class="badge badge-primary" style="margin-bottom:12px;" id="plan-level-badge">Loading...</div>
+            <h2 id="plan-title">Your Personalized 30-Day Plan</h2>
+            <p style="color:var(--text-secondary);font-size:14px;margin-top:8px;" id="plan-subtitle">
+              Designed for your level and goal
+            </p>
+          </div>
+          <div style="display:flex;gap:24px;text-align:center;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:2rem;font-weight:900;color:white;" id="plan-day-num">—</div>
+              <div style="font-size:12px;color:var(--text-muted);">Current Day</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;font-weight:900;" class="grad-text" id="plan-pct">0%</div>
+              <div style="font-size:12px;color:var(--text-muted);">Complete</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;font-weight:900;color:#22C55E;" id="plan-done">0</div>
+              <div style="font-size:12px;color:var(--text-muted);">Days Done</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--text-secondary);">Overall Progress</span>
+            <span style="font-size:13px;font-weight:700;color:white;" id="plan-pct-bar-label">0%</span>
+          </div>
+          <div class="progress-wrap" style="height:10px;">
+            <div class="progress-bar" id="plan-main-bar" style="height:10px;width:0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Week Summary Stats -->
+      <div class="week-summary" id="week-summary">
+        <div class="week-sum-item">
+          <div class="week-sum-icon">✅</div>
+          <div class="week-sum-val" id="ws-done">0</div>
+          <div class="week-sum-lbl">Sessions Done</div>
+        </div>
+        <div class="week-sum-item">
+          <div class="week-sum-icon">⭐</div>
+          <div class="week-sum-val" id="ws-avg">—</div>
+          <div class="week-sum-lbl">Avg Score</div>
+        </div>
+        <div class="week-sum-item">
+          <div class="week-sum-icon">⚡</div>
+          <div class="week-sum-val" id="ws-xp">0</div>
+          <div class="week-sum-lbl">XP Earned</div>
+        </div>
+        <div class="week-sum-item">
+          <div class="week-sum-icon">📅</div>
+          <div class="week-sum-val" id="ws-left">30</div>
+          <div class="week-sum-lbl">Days Remaining</div>
+        </div>
+      </div>
+
+      <!-- Week Tabs -->
+      <div class="week-tabs" id="week-tabs">
+        <div class="week-tab active" data-week="all" onclick="filterWeek('all', this)">All 30 Days</div>
+        <div class="week-tab" data-week="1" onclick="filterWeek(1, this)">Week 1 · Foundation</div>
+        <div class="week-tab" data-week="2" onclick="filterWeek(2, this)">Week 2 · Core Skills</div>
+        <div class="week-tab" data-week="3" onclick="filterWeek(3, this)">Week 3 · Applied</div>
+        <div class="week-tab" data-week="4" onclick="filterWeek(4, this)">Week 4 · Advanced</div>
+      </div>
+
+      <!-- Day Cards Grid -->
+      <div class="day-cards-grid" id="day-cards-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text-muted);">
+          <div class="spinner" style="margin:0 auto 16px;"></div>
+          <p>Loading your personalized plan...</p>
+        </div>
+      </div>
+
+      <!-- No plan fallback -->
+      <div id="no-plan-msg" style="display:none;text-align:center;padding:80px 24px;">
+        <div style="font-size:64px;margin-bottom:20px;">📋</div>
+        <h3 style="margin-bottom:12px;">No Active Plan Found</h3>
+        <p style="color:var(--text-secondary);margin-bottom:28px;">Complete your assessment to get a personalized 30-day plan generated for you.</p>
+        <a href="assessment.html" class="btn btn-primary btn-lg">Take Assessment Now</a>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Day Detail Panel -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="day-detail-panel" id="day-detail-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <h4 id="detail-day-title">Day —</h4>
+    <button onclick="closeDetail()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+  </div>
+
+  <div id="detail-content"><!-- filled by JS --></div>
+
+  <div style="margin-top:24px;">
+    <a href="practice.html" class="btn btn-primary" style="width:100%;" id="detail-practice-btn">
+      🎤 Practice This Session
+    </a>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+const TYPE_COLORS = {
+  'Pronunciation': '#6C3EF4',
+  'Vocabulary':    '#F97316',
+  'Grammar':       '#22C55E',
+  'Conversation':  '#06B6D4',
+  'Storytelling':  '#8B5CF6',
+  'Interview Prep':'#F59E0B',
+  'Debate':        '#EF4444',
+  'Review':        '#64748B',
+  'Assessment':    '#10B981'
+};
+const TYPE_ICONS = {
+  'Pronunciation': '🔤', 'Vocabulary': '📚', 'Grammar': '📝',
+  'Conversation': '💬', 'Storytelling': '📖', 'Interview Prep': '💼',
+  'Debate': '🎭', 'Review': '🔄', 'Assessment': '📊'
+};
+
+let allDays = [];
+let currentPlanDay = 0;
+let sessionScores = {};
+
+async function init() {
+  const user = AppState.loadFromCache();
+  if (!user) { window.location.href = 'onboarding.html'; return; }
+
+  document.getElementById('sb-name').textContent = user.name;
+  document.getElementById('sb-level').textContent = user.english_level || '—';
+  document.getElementById('sb-avatar').textContent = user.avatar || Utils.initials(user.name);
+  currentPlanDay = user.plan_day || 0;
+
+  await loadPlan(user);
+  await loadSessionScores(user.id);
+}
+
+async function loadPlan(user) {
+  try {
+    const result = await API.get(SG.TABLES.PLANS, { limit: 10 });
+    const plans = (result.data || []).filter(p => p.user_id === user.id && p.is_active);
+    const plan = plans[0];
+
+    if (!plan) {
+      // Generate a demo plan
+      allDays = PlanGenerator.generate(user.english_level || 'Intermediate', user.learning_goal || 'Daily Conversation');
+      renderPlanHeader(null, user);
+      renderDays(allDays, currentPlanDay);
+      return;
+    }
+
+    try {
+      allDays = JSON.parse(plan.days_data || '[]');
+    } catch(e) {
+      allDays = PlanGenerator.generate(user.english_level || 'Intermediate', user.learning_goal || 'Daily Conversation');
+    }
+
+    renderPlanHeader(plan, user);
+    renderDays(allDays, currentPlanDay);
+  } catch(e) {
+    // Fallback: generate on client
+    allDays = PlanGenerator.generate(user.english_level || 'Intermediate', user.learning_goal || 'Daily Conversation');
+    renderPlanHeader(null, user);
+    renderDays(allDays, currentPlanDay);
+  }
+}
+
+async function loadSessionScores(userId) {
+  try {
+    const result = await API.get(SG.TABLES.SESSIONS, { limit: 100 });
+    const sessions = (result.data || []).filter(s => s.user_id === userId);
+    sessions.forEach(s => {
+      if (s.plan_day && s.score) sessionScores[s.plan_day] = s.score;
+    });
+    // Re-render with scores
+    renderDays(allDays, currentPlanDay);
+  } catch(e) {}
+}
+
+function renderPlanHeader(plan, user) {
+  const done = currentPlanDay;
+  const pct = Math.round((done / 30) * 100);
+
+  document.getElementById('plan-level-badge').textContent = `${user.english_level || 'Intermediate'} · ${user.learning_goal || 'Daily Conversation'}`;
+  document.getElementById('plan-title').textContent = plan ? plan.plan_name : `${user.learning_goal || 'Daily Conversation'} — ${user.english_level || 'Intermediate'} Track`;
+  document.getElementById('plan-subtitle').textContent = `Goal: ${user.learning_goal || 'Daily Conversation'} · Level: ${user.english_level || 'Intermediate'} · ${user.native_language || ''} speaker`;
+  document.getElementById('plan-day-num').textContent = done + 1;
+  document.getElementById('plan-pct').textContent = pct + '%';
+  document.getElementById('plan-done').textContent = done;
+  document.getElementById('plan-pct-bar-label').textContent = pct + '%';
+  document.getElementById('plan-main-bar').style.width = pct + '%';
+
+  // Stats
+  document.getElementById('ws-done').textContent = done;
+  document.getElementById('ws-left').textContent = 30 - done;
+  document.getElementById('ws-xp').textContent = done * 100;
+
+  const scores = Object.values(sessionScores);
+  if (scores.length) {
+    const avg = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
+    document.getElementById('ws-avg').textContent = avg;
+  }
+}
+
+function renderDays(days, currentDay, weekFilter = 'all') {
+  const grid = document.getElementById('day-cards-grid');
+  const filtered = weekFilter === 'all' ? days : days.filter(d => d.week == weekFilter);
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">No days found for this filter.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(day => {
+    const isDone = day.day <= currentDay;
+    const isCurrent = day.day === currentDay + 1;
+    const isLocked = day.day > currentDay + 1;
+    const score = sessionScores[day.day];
+    const typeColor = TYPE_COLORS[day.type] || '#6C3EF4';
+    const typeIcon = TYPE_ICONS[day.type] || '💬';
+
+    let statusIcon = '🔒';
+    let cardClass = 'day-card locked';
+    if (isDone) { statusIcon = '✅'; cardClass = 'day-card completed'; }
+    if (isCurrent) { statusIcon = '▶'; cardClass = 'day-card current'; }
+
+    let scoreHtml = '';
+    if (score) {
+      const cls = score >= 75 ? 'good' : score >= 55 ? 'avg' : 'low';
+      scoreHtml = `<div class="day-score ${cls}">${score}</div>`;
+    }
+
+    return `
+      <div class="${cardClass}" onclick="${isLocked ? '' : `openDetail(${day.day - 1})`}">
+        ${scoreHtml}
+        <div class="day-card-header">
+          <div>
+            <div class="day-num">DAY ${day.day}</div>
+            <div class="day-type-badge" style="background:${typeColor}22;color:${typeColor};border:1px solid ${typeColor}44;">
+              ${typeIcon} ${day.type}
+            </div>
+          </div>
+          <div class="day-status-icon">${statusIcon}</div>
+        </div>
+        <div class="day-topic">${day.topic}</div>
+        <div class="day-meta">
+          <span>⏱️ ${day.duration} min</span>
+          <span>⚡ +${day.xp} XP</span>
+          <span>📅 Week ${day.week}</span>
+        </div>
+        ${isCurrent ? '<div style="margin-top:10px;"><span class="badge badge-primary" style="font-size:10px;">▶ TODAY</span></div>' : ''}
+        ${isDone && score ? `<div style="margin-top:10px;"><div class="progress-wrap"><div class="progress-bar" style="height:4px;width:${score}%;"></div></div></div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function filterWeek(week, el) {
+  document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDays(allDays, currentPlanDay, week);
+}
+
+function openDetail(dayIdx) {
+  const day = allDays[dayIdx];
+  if (!day) return;
+
+  document.getElementById('detail-day-title').textContent = `Day ${day.day} · ${day.type}`;
+
+  const score = sessionScores[day.day];
+  const typeColor = TYPE_COLORS[day.type] || '#6C3EF4';
+  const typeIcon = TYPE_ICONS[day.type] || '💬';
+  const isDone = day.day <= currentPlanDay;
+  const isCurrent = day.day === currentPlanDay + 1;
+
+  document.getElementById('detail-content').innerHTML = `
+    <div style="background:${typeColor}15;border:1px solid ${typeColor}30;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">${typeIcon}</div>
+      <div style="font-size:1.1rem;font-weight:700;color:white;margin-bottom:6px;">${day.topic}</div>
+      <div style="font-size:12px;color:var(--text-muted);">Week ${day.week}: ${day.theme}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:1.2rem;font-weight:800;color:white;">⏱️ ${day.duration}m</div>
+        <div style="font-size:11px;color:var(--text-muted);">Duration</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:1.2rem;font-weight:800;color:var(--primary-light);">+${day.xp} XP</div>
+        <div style="font-size:11px;color:var(--text-muted);">Reward</div>
+      </div>
+    </div>
+
+    ${score ? `
+    <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:#4ade80;margin-bottom:4px;">✅ Completed</div>
+      <div style="font-size:1.5rem;font-weight:900;color:white;">Score: ${score}/100</div>
+    </div>` : ''}
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:8px;">💡 Coach Tip</div>
+      <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;">${day.tips}</div>
+    </div>
+
+    <div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:8px;">📋 Session Status</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;">
+        <div style="font-size:24px;">${isDone ? '✅' : isCurrent ? '▶' : '🔒'}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:white;">${isDone ? 'Completed' : isCurrent ? 'Today\'s Session' : 'Locked'}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${isDone ? 'You\'ve done this session' : isCurrent ? 'Ready to practice now!' : 'Complete previous days first'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const practiceBtn = document.getElementById('detail-practice-btn');
+  if (isDone) {
+    practiceBtn.textContent = '🔄 Redo This Session';
+    practiceBtn.className = 'btn btn-secondary';
+    practiceBtn.style.width = '100%';
+  } else if (isCurrent) {
+    practiceBtn.textContent = '🎤 Start Today\'s Session';
+    practiceBtn.className = 'btn btn-primary';
+    practiceBtn.style.width = '100%';
+  } else {
+    practiceBtn.textContent = '🔒 Session Locked';
+    practiceBtn.className = 'btn btn-secondary';
+    practiceBtn.style.width = '100%';
+    practiceBtn.style.opacity = '0.5';
+    practiceBtn.setAttribute('disabled', '');
+  }
+
+  document.getElementById('day-detail-panel').classList.add('open');
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('day-detail-panel').classList.remove('open');
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-practice-btn').removeAttribute('disabled');
+  document.getElementById('detail-practice-btn').style.opacity = '';
+}
+
+init();
+</script>
+</body>
+</html>

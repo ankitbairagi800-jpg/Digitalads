@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practice — SpeakGuru AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <style>
+    .practice-layout { display: flex; min-height: 100vh; }
+
+    /* Session setup panel */
+    .setup-panel {
+      max-width: 680px; margin: 0 auto; padding: 32px 24px;
+      animation: fadeInUp 0.4s ease;
+    }
+
+    /* Active practice UI */
+    .practice-stage {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      padding: 32px 24px; max-width: 780px; margin: 0 auto; width: 100%;
+    }
+
+    /* Prompt card */
+    .prompt-card {
+      width: 100%; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 24px; padding: 32px;
+      margin-bottom: 24px; position: relative; overflow: hidden;
+    }
+    .prompt-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--grad-primary);
+    }
+    .prompt-text {
+      font-size: 1.3rem; font-weight: 700; color: white;
+      line-height: 1.5; margin-bottom: 16px;
+    }
+    .prompt-context {
+      font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+      padding: 14px; background: rgba(255,255,255,0.03);
+      border-radius: 12px; border-left: 3px solid var(--primary);
+    }
+    .prompt-tips {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+    }
+    .prompt-tip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; background: rgba(108,62,244,0.1);
+      border: 1px solid rgba(108,62,244,0.2); border-radius: 999px;
+      font-size: 12px; color: var(--primary-light);
+    }
+
+    /* Recording panel */
+    .record-panel {
+      width: 100%; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 24px;
+      padding: 32px; text-align: center; transition: all 0.4s;
+    }
+    .record-panel.recording {
+      border-color: rgba(239,68,68,0.4);
+      box-shadow: 0 0 40px rgba(239,68,68,0.1);
+    }
+    .record-panel.done {
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 40px rgba(34,197,94,0.1);
+    }
+
+    /* Animated mic button */
+    .big-mic {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: var(--grad-primary); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 44px; margin: 0 auto 20px;
+      transition: all 0.3s;
+      box-shadow: 0 0 0 0 rgba(108,62,244,0.4);
+    }
+    .big-mic:hover { transform: scale(1.05); }
+    .big-mic.recording {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+      animation: pulseRing 1.5s ease-out infinite;
+    }
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      70%  { box-shadow: 0 0 0 30px rgba(239,68,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+    .big-mic.done { background: linear-gradient(135deg,#22C55E,#16A34A); }
+    .big-mic.processing { background: linear-gradient(135deg,#F59E0B,#F97316); animation: spin 1s linear infinite; }
+
+    /* Waveform canvas */
+    #waveform-canvas {
+      width: 100%; height: 80px; display: block;
+      margin: 16px 0;
+    }
+
+    /* Timer */
+    .timer-display {
+      font-size: 3rem; font-weight: 900; color: white;
+      font-variant-numeric: tabular-nums; letter-spacing: -2px;
+      margin: 8px 0;
+    }
+    .timer-display.recording { color: #F87171; }
+    .timer-display.done { color: #4ADE80; }
+
+    /* Controls */
+    .practice-controls {
+      display: flex; gap: 16px; justify-content: center;
+      flex-wrap: wrap; margin-top: 20px;
+    }
+
+    /* Transcript */
+    .transcript-box {
+      width: 100%; background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 20px; margin-top: 16px; min-height: 80px;
+      font-size: 15px; color: var(--text-secondary); line-height: 1.7;
+      text-align: left; font-style: italic;
+    }
+    .transcript-word { display: inline; }
+    .transcript-word.correct { color: #4ADE80; }
+    .transcript-word.warn    { color: #FCD34D; }
+    .transcript-word.error   { color: #FCA5A5; text-decoration: underline wavy #EF4444; }
+
+    /* Feedback panel */
+    .feedback-panel {
+      width: 100%; animation: fadeInUp 0.5s ease;
+    }
+    .feedback-hero {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 32px; text-align: center; margin-bottom: 20px;
+    }
+    .feedback-score-ring { position: relative; display: inline-block; margin-bottom: 16px; }
+    .feedback-scores-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 12px;
+      margin: 24px 0;
+    }
+    .fscore-item {
+      background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px;
+      text-align: center;
+    }
+    .fscore-val  { font-size: 1.6rem; font-weight: 800; }
+    .fscore-lbl  { font-size: 11px; color: var(--text-muted); margin-top: 3px; text-transform: uppercase; }
+    .feedback-tip {
+      background: rgba(108,62,244,0.08); border: 1px solid rgba(108,62,244,0.2);
+      border-radius: 12px; padding: 14px 18px;
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .feedback-tip-icon { font-size: 18px; flex-shrink: 0; }
+
+    /* Session type selector */
+    .type-selector { display: flex; gap: 10px; flex-wrap: wrap; }
+    .type-chip {
+      padding: 10px 18px; border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--text-secondary); transition: all 0.2s;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .type-chip:hover { border-color: var(--primary); color: white; }
+    .type-chip.selected {
+      background: rgba(108,62,244,0.2); border-color: var(--primary);
+      color: var(--primary-light);
+    }
+
+    @media (max-width: 600px) {
+      .feedback-scores-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Sidebar (reused) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand">
+        <div class="brand-logo">🎤</div>
+        <span class="brand-name" style="font-size:1rem;">Speak<span>Guru</span></span>
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link"><span class="icon">📊</span> Dashboard</a>
+        <a href="practice.html" class="sidebar-link active"><span class="icon">🎤</span> Practice Now</a>
+        <a href="plan.html" class="sidebar-link"><span class="icon">🗓️</span> 30-Day Plan</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Progress</div>
+        <a href="history.html" class="sidebar-link"><span class="icon">📝</span> Session History</a>
+        <a href="assessment.html" class="sidebar-link"><span class="icon">📋</span> Re-Assessment</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="window.location.href='profile.html'">
+        <div class="avatar sidebar-avatar" id="sb-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sb-name">Loading...</div>
+          <div class="sidebar-user-level" id="sb-level">—</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="app-main">
+    <!-- Topbar -->
+    <div class="app-topbar">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:20px;" onclick="document.getElementById('sidebar').classList.toggle('open')">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:white;" id="session-title-topbar">Practice Session</div>
+          <div style="font-size:12px;color:var(--text-muted);" id="session-day-topbar">Loading your plan...</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#fb923c;" id="topbar-streak">
+          🔥 <span id="streak-val">0</span>
+        </div>
+        <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Dashboard</a>
+      </div>
+    </div>
+
+    <!-- SETUP SCREEN -->
+    <div id="screen-setup" style="padding-top:12px;">
+      <div class="setup-panel">
+        <div id="setup-today-banner" style="display:none;background:linear-gradient(135deg,rgba(108,62,244,0.15),rgba(59,130,246,0.08));border:1px solid rgba(108,62,244,0.3);border-radius:20px;padding:20px 24px;margin-bottom:28px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--primary-light);margin-bottom:8px;">📅 TODAY'S PLAN</div>
+          <div style="font-size:1.2rem;font-weight:700;color:white;margin-bottom:6px;" id="setup-today-topic">—</div>
+          <div style="display:flex;gap:16px;font-size:13px;color:var(--text-muted);" id="setup-today-meta"></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="startPlannedSession()">
+            ▶ Start This Session
+          </button>
+        </div>
+
+        <h3 style="margin-bottom:8px;">Or choose a custom session</h3>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px;">Practice any skill — doesn't have to follow the plan.</p>
+
+        <div style="margin-bottom:24px;">
+          <div class="form-label">Session Type</div>
+          <div class="type-selector" id="type-selector">
+            <div class="type-chip selected" data-val="Conversation">💬 Conversation</div>
+            <div class="type-chip" data-val="Pronunciation">🔤 Pronunciation</div>
+            <div class="type-chip" data-val="Vocabulary">📚 Vocabulary</div>
+            <div class="type-chip" data-val="Grammar">📝 Grammar</div>
+            <div class="type-chip" data-val="Interview Prep">💼 Interview Prep</div>
+            <div class="type-chip" data-val="Storytelling">📖 Storytelling</div>
+            <div class="type-chip" data-val="Debate">🎭 Debate</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <div class="form-label">Difficulty Level</div>
+          <div class="type-selector" id="diff-selector">
+            <div class="type-chip" data-val="Easy">🟢 Easy</div>
+            <div class="type-chip selected" data-val="Medium">🟡 Medium</div>
+            <div class="type-chip" data-val="Hard">🔴 Hard</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:28px;">
+          <div class="form-label">Session Length</div>
+          <div class="type-selector" id="dur-selector">
+            <div class="type-chip" data-val="5">⚡ 5 min</div>
+            <div class="type-chip selected" data-val="15">⏱ 15 min</div>
+            <div class="type-chip" data-val="30">🎯 30 min</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="width:100%;" onclick="beginCustomSession()">
+          🎤 Start Practice Session
+        </button>
+      </div>
+    </div>
+
+    <!-- ACTIVE PRACTICE SCREEN -->
+    <div id="screen-practice" style="display:none;">
+      <div class="practice-stage">
+
+        <!-- Progress bar -->
+        <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <div style="font-size:13px;color:var(--text-muted);">
+            Prompt <span id="prompt-num">1</span> of <span id="prompt-total">3</span>
+          </div>
+          <div style="flex:1;margin:0 16px;background:rgba(255,255,255,0.08);border-radius:999px;height:6px;">
+            <div id="session-progress-bar" style="height:6px;background:var(--grad-primary);border-radius:999px;transition:width 0.4s;width:0%;"></div>
+          </div>
+          <button onclick="exitSession()" style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:6px 12px;border-radius:8px;" onmouseover="this.style.background='rgba(239,68,68,0.1)';this.style.color='#fca5a5'" onmouseout="this.style.background='none';this.style.color='var(--text-muted)'">
+            ✕ Exit
+          </button>
+        </div>
+
+        <!-- Prompt card -->
+        <div class="prompt-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <div class="badge badge-primary" id="prompt-type-badge">Conversation</div>
+            <div style="font-size:12px;color:var(--text-muted);">Speak for 30–90 seconds</div>
+          </div>
+          <div class="prompt-text" id="prompt-text">Loading prompt...</div>
+          <div class="prompt-context" id="prompt-context"></div>
+          <div class="prompt-tips" id="prompt-tips"></div>
+        </div>
+
+        <!-- Recording panel -->
+        <div class="record-panel" id="practice-record-panel">
+          <canvas id="waveform-canvas"></canvas>
+          <button class="big-mic" id="practice-mic-btn" onclick="togglePracticeRecording()">🎤</button>
+          <div class="timer-display" id="practice-timer">0:00</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;" id="practice-status">
+            Tap the microphone to begin
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">Your response will be analyzed by AI</div>
+
+          <!-- Simulated transcript -->
+          <div class="transcript-box" id="transcript-box" style="display:none;">
+            <span style="font-size:12px;color:var(--text-muted);">AI Transcription (Live):</span><br>
+            <span id="transcript-text"></span>
+            <span class="cursor-blink" style="display:inline-block;width:2px;height:14px;background:var(--primary-light);margin-left:2px;animation:pulse 1s infinite;"></span>
+          </div>
+
+          <div class="practice-controls" id="practice-controls" style="display:none;">
+            <button class="btn btn-secondary" onclick="reRecordPrompt()">
+              <i class="fas fa-redo"></i> Re-record
+            </button>
+            <button class="btn btn-primary" id="next-prompt-btn" onclick="nextPrompt()">
+              Next <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ANALYZING SCREEN -->
+    <div id="screen-analyzing" style="display:none;text-align:center;padding:80px 24px;">
+      <div style="font-size:72px;margin-bottom:24px;animation:bounce 1s ease-in-out infinite;">🧠</div>
+      <h2 style="margin-bottom:12px;">Analyzing your practice...</h2>
+      <p style="color:var(--text-secondary);max-width:380px;margin:0 auto 40px;">Evaluating fluency, pronunciation, grammar, and vocabulary from your responses.</p>
+      <div style="max-width:300px;margin:0 auto;">
+        <div id="processing-steps" style="text-align:left;"></div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK SCREEN -->
+    <div id="screen-feedback" style="display:none;">
+      <div class="practice-stage">
+        <div class="feedback-panel">
+
+          <div class="feedback-hero">
+            <div class="badge badge-success" style="margin-bottom:16px;">✅ Session Complete!</div>
+            <h2 style="margin-bottom:8px;" id="fb-session-title">Practice Complete</h2>
+
+            <div style="display:inline-flex;position:relative;margin:16px 0;">
+              <svg id="fb-score-svg" width="140" height="140" style="transform:rotate(-90deg);"></svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div style="font-size:2.8rem;font-weight:900;" class="grad-text" id="fb-total-score">0</div>
+                <div style="font-size:12px;color:var(--text-muted);">/ 100</div>
+              </div>
+            </div>
+
+            <div id="fb-grade-badge" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:999px;font-size:14px;font-weight:700;margin-bottom:20px;"></div>
+
+            <div class="feedback-scores-grid">
+              <div class="fscore-item">
+                <div class="fscore-val" id="fb-fluency" style="color:#6C3EF4;">—</div>
+                <div class="fscore-lbl">Fluency</div>
+              </div>
+              <div class="fscore-item">
+                <div class="fscore-val" id="fb-pronunciation" style="color:#F97316;">—</div>
+                <div class="fscore-lbl">Pronunciation</div>
+              </div>
+              <div class="fscore-item">
+                <div class="fscore-val" id="fb-grammar" style="color:#22C55E;">—</div>
+                <div class="fscore-lbl">Grammar</div>
+              </div>
+              <div class="fscore-item">
+                <div class="fscore-val" id="fb-vocabulary" style="color:#06B6D4;">—</div>
+                <div class="fscore-lbl">Vocabulary</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);border-radius:12px;padding:14px;margin-top:8px;">
+              <span style="font-size:24px;">🔥</span>
+              <div style="text-align:left;">
+                <div style="font-size:13px;font-weight:700;color:#fb923c;" id="xp-earned-text">+100 XP Earned</div>
+                <div style="font-size:12px;color:var(--text-muted);">Added to your experience points</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Feedback Tips -->
+          <div class="card" style="padding:24px;margin-bottom:20px;">
+            <h4 style="margin-bottom:16px;">🤖 AI Coach Feedback</h4>
+            <div id="ai-feedback-tips"></div>
+            <div id="ai-encouragement" style="margin-top:14px;padding:14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;font-size:14px;font-weight:600;color:#4ade80;"></div>
+          </div>
+
+          <!-- Next step -->
+          <div class="card" style="padding:24px;margin-bottom:20px;">
+            <h4 style="margin-bottom:12px;">📌 Your Next Step</h4>
+            <p style="font-size:14px;color:var(--text-secondary);" id="ai-next-step"></p>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:14px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg" onclick="practiceAgain()" style="flex:1;">
+              🎤 Practice Again
+            </button>
+            <a href="dashboard.html" class="btn btn-secondary btn-lg" style="flex:1;">
+              📊 Back to Dashboard
+            </a>
+            <a href="plan.html" class="btn btn-ghost btn-lg" style="flex:1;">
+              🗓️ View Full Plan
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+// ---- State ----
+const practiceState = {
+  sessionType: 'Conversation',
+  difficulty: 'Medium',
+  duration: 15,
+  prompts: [],
+  currentPromptIdx: 0,
+  answers: [],
+  isRecording: false,
+  timerSeconds: 0,
+  timerInterval: null,
+  waveInterval: null,
+  scores: null,
+  plannedDay: null,
+  plannedTopic: null,
+  isFromPlan: false
+};
+
+// ---- Prompts database ----
+const PROMPTS = {
+  'Conversation': {
+    Easy: [
+      { text: 'Talk about your morning routine', context: 'Describe what you do from waking up to leaving for work or college. Include details about breakfast, getting ready, and how long it takes.', tips: ['Use present tense', 'Include time expressions like "first", "then", "after that"'] },
+      { text: 'Describe your favorite food', context: 'Tell us about a dish you love eating. Where is it from? When do you usually eat it? Why is it your favorite?', tips: ['Use adjectives: spicy, sweet, crunchy', 'Describe the smell, color, and taste'] },
+    ],
+    Medium: [
+      { text: 'Describe a typical workday or college day', context: 'Walk us through a full day — from morning to evening. Include your commute, what you work on, any challenges, and how you unwind at the end.', tips: ['Use past tense: "I had", "I went", "I finished"', 'Connect ideas: "Meanwhile", "After that", "By the time"'] },
+      { text: 'Talk about your city and why you like or dislike living there', context: 'Describe where you live. What are the best things about it? What would you change? How is it different from smaller towns or other cities?', tips: ['Compare: "Unlike Delhi, Mumbai is...", "On the other hand..."', 'Use: "One thing I appreciate is..."'] },
+    ],
+    Hard: [
+      { text: 'Discuss the impact of social media on young Indians', context: 'Talk about both the positive and negative effects of platforms like Instagram, YouTube, and WhatsApp on the youth in India. Give specific examples.', tips: ['Use data/statistics if you know any', 'Structure: Point + Example + Impact', 'Conclude with your personal opinion'] },
+    ]
+  },
+  'Interview Prep': {
+    Easy: [
+      { text: 'Tell me about yourself', context: 'This is the most common interview question. Give a 60-90 second introduction covering your background, current role/studies, key skills, and why you are interviewing.', tips: ['Use the PRESENT-PAST-FUTURE structure', 'Keep it professional but natural', 'Don\'t just read your resume — tell a story'] },
+    ],
+    Medium: [
+      { text: 'Tell me about a time you solved a difficult problem at work', context: 'Use the STAR method: Situation → Task → Action → Result. Give a specific real example. Quantify the result if possible (e.g. "reduced errors by 30%").', tips: ['Be specific — avoid vague answers', 'Focus on YOUR role, not the team', 'End with a positive result or learning'] },
+      { text: 'Why do you want to work at this company?', context: 'Show that you\'ve done research. Talk about the company\'s values, products, culture, or growth. Connect it to your career goals.', tips: ['Mention specific company facts', 'Show enthusiasm without being fake', 'Connect to your long-term goals'] },
+    ],
+    Hard: [
+      { text: 'Where do you see yourself in 5 years?', context: 'This question tests your ambition and how well the role fits your goals. Show growth mindset, alignment with the company, and realistic but ambitious targets.', tips: ['Be ambitious but realistic', 'Align with company\'s direction', 'Show continuous learning mindset'] },
+    ]
+  },
+  'Pronunciation': {
+    Easy: [
+      { text: 'Read and speak these tongue twisters', context: '"The thirty-three thieves thought that they thrilled the throne throughout Thursday." Then: "Victor\'s victories were very valuable and vivid."', tips: ['Slow down on "th" and "v" sounds', '"th" = tongue between teeth', '"v" = upper teeth on lower lip — not "w"'] },
+    ],
+    Medium: [
+      { text: 'Pronounce these commonly mispronounced words in Indian English', context: 'Say each word clearly: specifically, particularly, photographer, comfortable, vegetable, February, Wednesday, library, pronunciation, bureaucracy', tips: ['Comfortable = "COMF-ter-bul" not "COM-fort-a-bul"', 'February = "FEB-roo-er-ee"', 'Library = "LIE-brer-ee"'] },
+    ],
+    Hard: []
+  },
+  'Debate': {
+    Medium: [
+      { text: 'Argue FOR remote work being better than office work', context: 'Defend the position that working from home is more productive and beneficial for Indian workers, even if you personally disagree. Give 3 strong arguments.', tips: ['Start with your strongest point', 'Anticipate counter-arguments', 'Use: "Furthermore...", "It\'s clear that...", "Research shows..."'] },
+    ],
+    Hard: [
+      { text: 'Should India make English an official language?', context: 'Take a position (for or against) and defend it with 3 specific arguments backed by facts, examples, or logic. Address the strongest counter-argument.', tips: ['Structure: Claim → Evidence → Rebuttal', 'Use formal debate phrases', 'Acknowledge the other side before refuting'] },
+    ]
+  },
+  'Storytelling': {
+    Medium: [
+      { text: 'Tell a story about an unexpected journey or travel experience', context: 'Describe a time when your travel plans went wrong — missed train, wrong direction, bad weather — and how you handled it. Make it entertaining!', tips: ['Set the scene first', 'Use past continuous for background: "It was raining..."', 'Build suspense before the resolution'] },
+    ]
+  },
+  'Vocabulary': {
+    Medium: [
+      { text: 'Use these 5 words in one connected story: diligent, negotiate, perspective, milestone, resilient', context: 'Create a 60-second story using all 5 words correctly and naturally. The story can be about anything — work, life, family, or completely fictional.', tips: ['Use words in the right context', 'Don\'t force the words — build a natural story', 'Show you understand the meaning, not just the spelling'] },
+    ]
+  },
+  'Grammar': {
+    Medium: [
+      { text: 'Describe something that happened to you yesterday using ONLY past tense', context: 'Talk about what you did yesterday from morning to night. Focus on using simple past (I went, I had, I saw) and past continuous (I was working, It was raining) correctly.', tips: ['Simple past: "I went to the market"', 'Past continuous: "While I was working, my phone rang"', 'Perfect past: "By the time I arrived, they had already left"'] },
+    ]
+  }
+};
+
+function getPromptsForType(type, difficulty) {
+  const byType = PROMPTS[type] || PROMPTS['Conversation'];
+  let prompts = byType[difficulty] || byType['Medium'] || [];
+  if (!prompts.length) {
+    // Fallback to any available
+    prompts = Object.values(byType).flat();
+  }
+  if (!prompts.length) {
+    prompts = PROMPTS['Conversation']['Medium'];
+  }
+  return prompts.slice(0, 3);
+}
+
+// ---- Chip selectors ----
+function initSelectors() {
+  ['type-selector','diff-selector','dur-selector'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      const chip = e.target.closest('.type-chip');
+      if (!chip) return;
+      const parent = chip.parentElement;
+      parent.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      const field = id === 'type-selector' ? 'sessionType' : id === 'diff-selector' ? 'difficulty' : 'duration';
+      practiceState[field] = chip.dataset.val;
+    });
+  });
+}
+
+async function init() {
+  const user = AppState.loadFromCache();
+  if (!user) { window.location.href = 'onboarding.html'; return; }
+
+  document.getElementById('sb-name').textContent = user.name;
+  document.getElementById('sb-level').textContent = user.english_level || '—';
+  document.getElementById('sb-avatar').textContent = user.avatar || Utils.initials(user.name);
+  document.getElementById('streak-val').textContent = user.streak_days || 0;
+
+  initSelectors();
+  await loadTodayPlan(user);
+}
+
+async function loadTodayPlan(user) {
+  try {
+    const result = await API.get(SG.TABLES.PLANS, { limit: 10 });
+    const plans = (result.data || []).filter(p => p.user_id === user.id && p.is_active);
+    const plan = plans[0];
+    if (plan && plan.days_data) {
+      const days = JSON.parse(plan.days_data);
+      const currentDay = user.plan_day || 0;
+      const today = days[currentDay];
+      if (today) {
+        practiceState.plannedDay = currentDay + 1;
+        practiceState.plannedTopic = today.topic;
+        practiceState.plannedType = today.type;
+
+        const banner = document.getElementById('setup-today-banner');
+        banner.style.display = 'block';
+        document.getElementById('setup-today-topic').textContent = today.topic;
+        document.getElementById('setup-today-meta').innerHTML = `
+          <span>📋 ${today.type}</span>
+          <span>⏱️ ${today.duration} min</span>
+          <span>⚡ +${today.xp} XP</span>
+        `;
+        document.getElementById('session-day-topbar').textContent = `Day ${currentDay + 1} · ${today.type}`;
+        document.getElementById('session-title-topbar').textContent = today.topic;
+      }
+    }
+  } catch(e) {
+    console.log('Load plan:', e.message);
+  }
+}
+
+function startPlannedSession() {
+  practiceState.isFromPlan = true;
+  practiceState.sessionType = practiceState.plannedType || 'Conversation';
+  practiceState.difficulty = 'Medium';
+  practiceState.duration = 15;
+  beginSession();
+}
+
+function beginCustomSession() {
+  practiceState.isFromPlan = false;
+  beginSession();
+}
+
+function beginSession() {
+  const prompts = getPromptsForType(practiceState.sessionType, practiceState.difficulty);
+  practiceState.prompts = prompts;
+  practiceState.currentPromptIdx = 0;
+  practiceState.answers = [];
+
+  document.getElementById('screen-setup').style.display = 'none';
+  document.getElementById('screen-practice').style.display = 'block';
+  document.getElementById('prompt-total').textContent = prompts.length;
+
+  loadPrompt(0);
+  initWaveformCanvas();
+}
+
+function loadPrompt(idx) {
+  const p = practiceState.prompts[idx];
+  if (!p) return;
+  practiceState.currentPromptIdx = idx;
+
+  document.getElementById('prompt-num').textContent = idx + 1;
+  document.getElementById('session-progress-bar').style.width = `${(idx / practiceState.prompts.length) * 100}%`;
+  document.getElementById('prompt-type-badge').textContent = practiceState.sessionType;
+  document.getElementById('prompt-text').textContent = p.text;
+  document.getElementById('prompt-context').textContent = p.context;
+
+  const tipsEl = document.getElementById('prompt-tips');
+  tipsEl.innerHTML = (p.tips || []).map(t => `<div class="prompt-tip"><span>💡</span>${t}</div>`).join('');
+
+  // Reset recording
+  resetPracticeRecorder();
+
+  if (idx === practiceState.prompts.length - 1) {
+    document.getElementById('next-prompt-btn').innerHTML = '🧠 Get Feedback <i class="fas fa-arrow-right"></i>';
+  } else {
+    document.getElementById('next-prompt-btn').innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
+  }
+}
+
+function resetPracticeRecorder() {
+  const panel = document.getElementById('practice-record-panel');
+  const btn = document.getElementById('practice-mic-btn');
+  const timer = document.getElementById('practice-timer');
+  const status = document.getElementById('practice-status');
+
+  clearInterval(practiceState.timerInterval);
+  clearInterval(practiceState.waveInterval);
+  practiceState.timerSeconds = 0;
+  practiceState.isRecording = false;
+
+  panel.classList.remove('recording','done');
+  btn.classList.remove('recording','done','processing');
+  btn.textContent = '🎤';
+  timer.className = 'timer-display';
+  timer.textContent = '0:00';
+  status.textContent = 'Tap the microphone to begin';
+  document.getElementById('transcript-box').style.display = 'none';
+  document.getElementById('practice-controls').style.display = 'none';
+  document.getElementById('transcript-text').textContent = '';
+}
+
+async function togglePracticeRecording() {
+  if (practiceState.isRecording) {
+    await stopPracticeRecording();
+  } else {
+    await startPracticeRecording();
+  }
+}
+
+async function startPracticeRecording() {
+  const result = await VoiceRecorder.start();
+  if (!result.success) {
+    Toast.error('Microphone error', 'Please allow microphone access');
+    return;
+  }
+  practiceState.isRecording = true;
+  practiceState.timerSeconds = 0;
+
+  const panel = document.getElementById('practice-record-panel');
+  const btn = document.getElementById('practice-mic-btn');
+  const timer = document.getElementById('practice-timer');
+  const status = document.getElementById('practice-status');
+
+  panel.classList.add('recording');
+  btn.classList.add('recording');
+  btn.textContent = '⏹️';
+  timer.className = 'timer-display recording';
+  status.textContent = '🔴 Recording... speak naturally!';
+
+  // Timer
+  practiceState.timerInterval = setInterval(() => {
+    practiceState.timerSeconds++;
+    const m = Math.floor(practiceState.timerSeconds / 60);
+    const s = practiceState.timerSeconds % 60;
+    timer.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+
+    // Auto show transcript after 5s
+    if (practiceState.timerSeconds === 5) {
+      simulateTranscript();
+    }
+    // Auto stop at max
+    if (practiceState.timerSeconds >= 120) stopPracticeRecording();
+  }, 1000);
+
+  animateWaveform(true);
+}
+
+async function stopPracticeRecording() {
+  clearInterval(practiceState.timerInterval);
+  animateWaveform(false);
+  practiceState.isRecording = false;
+
+  const recorded = await VoiceRecorder.stop();
+
+  const panel = document.getElementById('practice-record-panel');
+  const btn = document.getElementById('practice-mic-btn');
+  const timer = document.getElementById('practice-timer');
+  const status = document.getElementById('practice-status');
+
+  panel.classList.remove('recording');
+  panel.classList.add('done');
+  btn.classList.remove('recording');
+  btn.classList.add('done');
+  btn.textContent = '✅';
+  timer.className = 'timer-display done';
+  status.textContent = `✅ Recorded ${practiceState.timerSeconds} seconds!`;
+
+  practiceState.answers.push({
+    promptIdx: practiceState.currentPromptIdx,
+    duration: practiceState.timerSeconds
+  });
+
+  document.getElementById('practice-controls').style.display = 'flex';
+}
+
+function simulateTranscript() {
+  const el = document.getElementById('transcript-box');
+  const textEl = document.getElementById('transcript-text');
+  el.style.display = 'block';
+
+  const sampleTexts = [
+    "Good morning, my name is... and I am currently working as a... In my previous role at...",
+    "I think the most important thing about this topic is... because... For example, when I was...",
+    "In my opinion, there are several key factors to consider here. First of all... Secondly...",
+    "Well, actually this reminds me of a situation where I had to... At that time I was feeling..."
+  ];
+  const text = sampleTexts[practiceState.currentPromptIdx % sampleTexts.length];
+
+  let i = 0;
+  const typeInterval = setInterval(() => {
+    if (i < text.length && practiceState.isRecording) {
+      textEl.textContent += text[i];
+      i++;
+    } else {
+      clearInterval(typeInterval);
+    }
+  }, 60);
+}
+
+// Canvas waveform
+let waveCtx, waveData = [];
+function initWaveformCanvas() {
+  const canvas = document.getElementById('waveform-canvas');
+  waveCtx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 80;
+  for (let i = 0; i < 60; i++) waveData.push(5);
+  drawWave();
+}
+
+function drawWave() {
+  if (!waveCtx) return;
+  const canvas = document.getElementById('waveform-canvas');
+  const w = canvas.width, h = canvas.height;
+  waveCtx.clearRect(0, 0, w, h);
+  const barW = w / waveData.length;
+  const recording = practiceState.isRecording;
+  waveData.forEach((val, i) => {
+    const barH = val;
+    const x = i * barW;
+    const y = (h - barH) / 2;
+    waveCtx.fillStyle = recording ? `rgba(239,68,68,${0.4 + val/80})` : `rgba(108,62,244,${0.2 + val/100})`;
+    waveCtx.beginPath();
+    waveCtx.roundRect(x + 1, y, barW - 2, barH, 2);
+    waveCtx.fill();
+  });
+}
+
+function animateWaveform(active) {
+  if (active) {
+    practiceState.waveInterval = setInterval(() => {
+      waveData.push(8 + Math.random() * 55);
+      waveData.shift();
+      drawWave();
+    }, 80);
+  } else {
+    clearInterval(practiceState.waveInterval);
+    waveData.fill(4);
+    drawWave();
+  }
+}
+
+function reRecordPrompt() {
+  practiceState.answers.pop();
+  resetPracticeRecorder();
+}
+
+async function nextPrompt() {
+  if (practiceState.currentPromptIdx < practiceState.prompts.length - 1) {
+    loadPrompt(practiceState.currentPromptIdx + 1);
+  } else {
+    await finishSession();
+  }
+}
+
+async function finishSession() {
+  document.getElementById('screen-practice').style.display = 'none';
+  document.getElementById('screen-analyzing').style.display = 'block';
+
+  const steps = [
+    'Processing voice recordings...',
+    'Analyzing pronunciation patterns...',
+    'Evaluating grammar & fluency...',
+    'Generating personalized feedback...'
+  ];
+  const stepsEl = document.getElementById('processing-steps');
+  stepsEl.innerHTML = steps.map((s,i) => `
+    <div id="pstep-${i}" style="display:flex;gap:12px;align-items:center;padding:10px;opacity:0.3;transition:opacity 0.3s;">
+      <div class="spinner spinner-sm"></div>
+      <span style="font-size:14px;color:var(--text-secondary);">${s}</span>
+    </div>`).join('');
+
+  for (let i = 0; i < steps.length; i++) {
+    await new Promise(r => setTimeout(r, 900));
+    const el = document.getElementById(`pstep-${i}`);
+    el.style.opacity = '1';
+    el.querySelector('.spinner').outerHTML = '<span style="font-size:16px;">✅</span>';
+  }
+
+  await new Promise(r => setTimeout(r, 600));
+
+  const scores = generateSessionScores();
+  await saveSession(scores);
+  showFeedback(scores);
+}
+
+function generateSessionScores() {
+  const user = AppState.loadFromCache();
+  const baseScore = (user?.assessment_score || 50);
+  const duration = practiceState.answers.reduce((s, a) => s + (a.duration || 0), 0);
+  const durationBonus = Math.min(duration / 4, 12);
+  const variation = () => Math.floor(Math.random() * 20) - 5;
+
+  return {
+    fluency: Utils.clamp(baseScore + durationBonus + variation(), 25, 96),
+    pronunciation: Utils.clamp(baseScore - 8 + durationBonus + variation(), 25, 96),
+    grammar: Utils.clamp(baseScore + variation(), 25, 96),
+    vocabulary: Utils.clamp(baseScore + 5 + variation(), 25, 96),
+    duration: Math.round(duration / 60) || 1,
+    words: Math.round(duration * 2.8) || 100,
+    planDay: practiceState.plannedDay || 0,
+    type: practiceState.sessionType,
+    topic: practiceState.prompts[0]?.text || 'Practice Session'
+  };
+}
+
+async function saveSession(scores) {
+  const user = AppState.loadFromCache();
+  const avg = Math.round((scores.fluency + scores.pronunciation + scores.grammar + scores.vocabulary) / 4);
+  const feedback = AIFeedback.generate(avg, scores.type);
+  const xpEarned = practiceState.isFromPlan ? 150 : 100;
+
+  const sessionData = {
+    user_id: user?.id || 'guest',
+    session_type: scores.type,
+    topic: scores.topic,
+    duration_minutes: scores.duration,
+    score: avg,
+    fluency_score: Math.round(scores.fluency),
+    pronunciation_score: Math.round(scores.pronunciation),
+    grammar_score: Math.round(scores.grammar),
+    vocabulary_score: Math.round(scores.vocabulary),
+    feedback: feedback.overall + '\n\n' + feedback.tips.join('\n'),
+    words_spoken: scores.words,
+    plan_day: scores.planDay,
+    completed: true
+  };
+
+  try {
+    await API.post(SG.TABLES.SESSIONS, sessionData);
+
+    // Update user stats
+    if (user?.id) {
+      const newXp = (user.xp_points || 0) + xpEarned;
+      const newSessions = (user.total_sessions || 0) + 1;
+      const newStreak = (user.streak_days || 0) + (practiceState.isFromPlan ? 1 : 0);
+      const newPlanDay = practiceState.isFromPlan ? Math.min((user.plan_day || 0) + 1, 29) : (user.plan_day || 0);
+
+      await API.patch(SG.TABLES.USERS, user.id, {
+        xp_points: newXp,
+        total_sessions: newSessions,
+        streak_days: newStreak,
+        plan_day: newPlanDay
+      });
+      AppState.setUser({ ...user, xp_points: newXp, total_sessions: newSessions, streak_days: newStreak, plan_day: newPlanDay });
+    }
+
+    practiceState.scores = { ...scores, avg, xpEarned };
+  } catch(e) {
+    console.log('Save session:', e.message);
+    practiceState.scores = { ...scores, avg: Math.round((scores.fluency + scores.pronunciation + scores.grammar + scores.vocabulary)/4), xpEarned: 100 };
+  }
+}
+
+function showFeedback(scores) {
+  document.getElementById('screen-analyzing').style.display = 'none';
+  document.getElementById('screen-feedback').style.display = 'block';
+
+  const avg = practiceState.scores?.avg || Math.round((scores.fluency + scores.pronunciation + scores.grammar + scores.vocabulary) / 4);
+  const xpEarned = practiceState.scores?.xpEarned || 100;
+  const feedback = AIFeedback.generate(avg, scores.type);
+  const grade = Utils.scoreToGrade(avg);
+
+  document.getElementById('fb-session-title').textContent = `${scores.type}: ${scores.topic}`;
+
+  // Ring
+  setTimeout(() => {
+    Utils.drawCircleProgress(document.getElementById('fb-score-svg'), avg, 140, 12);
+    Utils.countUp(document.getElementById('fb-total-score'), avg, 1500);
+  }, 200);
+
+  // Grade badge
+  const gradeColors = { 'A+': '#22C55E', 'A': '#22C55E', 'B+': '#3B82F6', 'B': '#6C3EF4', 'C': '#F59E0B', 'D': '#EF4444' };
+  const gradeBadge = document.getElementById('fb-grade-badge');
+  const gc = gradeColors[grade.grade] || '#6C3EF4';
+  gradeBadge.style.cssText = `background:${gc}22;color:${gc};border:1px solid ${gc}44;`;
+  gradeBadge.textContent = `${grade.grade} · ${grade.label}`;
+
+  setTimeout(() => {
+    Utils.countUp(document.getElementById('fb-fluency'), Math.round(scores.fluency), 1000);
+    Utils.countUp(document.getElementById('fb-pronunciation'), Math.round(scores.pronunciation), 1000);
+    Utils.countUp(document.getElementById('fb-grammar'), Math.round(scores.grammar), 1000);
+    Utils.countUp(document.getElementById('fb-vocabulary'), Math.round(scores.vocabulary), 1000);
+  }, 400);
+
+  document.getElementById('xp-earned-text').textContent = `+${xpEarned} XP Earned!`;
+
+  // AI Tips
+  const tipsEl = document.getElementById('ai-feedback-tips');
+  tipsEl.innerHTML = feedback.tips.map(t => `
+    <div class="feedback-tip">
+      <span class="feedback-tip-icon">💡</span>
+      <span>${t}</span>
+    </div>`).join('');
+
+  document.getElementById('ai-encouragement').textContent = feedback.encouragement;
+  document.getElementById('ai-next-step').textContent = feedback.nextStep;
+
+  // Toast notification
+  if (avg >= 75) Toast.success('Excellent session! 🌟', `Score: ${avg}/100`);
+  else if (avg >= 55) Toast.info('Good practice! 🎯', `Score: ${avg}/100 · +${xpEarned} XP`);
+  else Toast.info('Keep going! 💪', `Every session makes you better.`);
+}
+
+function practiceAgain() {
+  practiceState.answers = [];
+  practiceState.scores = null;
+  document.getElementById('screen-feedback').style.display = 'none';
+  document.getElementById('screen-setup').style.display = 'block';
+}
+
+function exitSession() {
+  if (confirm('Exit this session? Progress will not be saved.')) {
+    practiceState.isRecording = false;
+    clearInterval(practiceState.timerInterval);
+    clearInterval(practiceState.waveInterval);
+    window.location.href = 'dashboard.html';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

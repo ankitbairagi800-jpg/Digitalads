@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get Started — SpeakGuru AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <style>
+    body { background: var(--grad-hero); min-height: 100vh; }
+    .onboard-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+    }
+    /* Left side visual */
+    .onboard-visual {
+      width: 420px;
+      flex-shrink: 0;
+      background: linear-gradient(160deg, #1A0E3A 0%, #0F1829 100%);
+      border-right: 1px solid var(--border);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .onboard-visual::before {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(108,62,244,0.2) 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+      pointer-events: none;
+    }
+    .visual-steps { margin-top: 60px; }
+    .visual-step {
+      display: flex; gap: 16px; align-items: flex-start;
+      margin-bottom: 28px; opacity: 0.5; transition: opacity 0.3s;
+    }
+    .visual-step.active { opacity: 1; }
+    .visual-step-dot {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(108,62,244,0.2); border: 2px solid rgba(108,62,244,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: var(--primary-light);
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .visual-step.active .visual-step-dot {
+      background: var(--grad-primary); border-color: transparent; color: white;
+    }
+    .visual-step-line {
+      position: absolute; left: 55px; top: 32px;
+      width: 2px; height: 28px;
+      background: rgba(108,62,244,0.2);
+    }
+    .visual-step h5 { font-size: 15px; color: white; margin-bottom: 4px; }
+    .visual-step p  { font-size: 13px; color: var(--text-muted); }
+    .visual-quote {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 20px;
+      font-size: 14px; color: var(--text-secondary); line-height: 1.6; font-style: italic;
+    }
+    .visual-quote-author { margin-top: 12px; font-style: normal; font-size: 13px; color: var(--text-muted); }
+
+    /* Right side form */
+    .onboard-form-area {
+      flex: 1;
+      padding: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .onboard-form-inner { width: 100%; max-width: 480px; }
+    .step-indicator {
+      display: flex; gap: 8px; margin-bottom: 40px;
+    }
+    .step-dot {
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+      transition: all 0.4s;
+      flex: 1;
+    }
+    .step-dot.active  { background: var(--primary); }
+    .step-dot.done    { background: var(--success); }
+
+    .form-step { display: none; }
+    .form-step.active { display: block; animation: fadeInUp 0.4s ease; }
+
+    .step-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+    .step-desc  { font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; }
+
+    /* Emoji avatar picker */
+    .avatar-grid {
+      display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 24px;
+    }
+    .avatar-opt {
+      aspect-ratio: 1; background: rgba(255,255,255,0.04);
+      border: 2px solid rgba(255,255,255,0.08); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer; transition: all 0.2s;
+    }
+    .avatar-opt:hover { background: rgba(108,62,244,0.15); border-color: var(--primary); transform: scale(1.1); }
+    .avatar-opt.selected { background: rgba(108,62,244,0.25); border-color: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
+
+    /* Goal buttons */
+    .goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .goal-btn {
+      padding: 16px; background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 14px; cursor: pointer; transition: all 0.2s; text-align: left;
+    }
+    .goal-btn:hover { border-color: var(--primary); background: rgba(108,62,244,0.08); }
+    .goal-btn.selected { border-color: var(--primary); background: rgba(108,62,244,0.15); }
+    .goal-btn-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+    .goal-btn-title { font-size: 13px; font-weight: 700; color: white; }
+    .goal-btn-desc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* Language chips */
+    .lang-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .lang-chip {
+      padding: 9px 18px; background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 999px; cursor: pointer;
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .lang-chip:hover { border-color: var(--primary); color: white; }
+    .lang-chip.selected { background: rgba(108,62,244,0.2); border-color: var(--primary); color: var(--primary-light); font-weight: 700; }
+
+    /* Level slider */
+    .level-grid { display: grid; gap: 10px; margin-bottom: 24px; }
+    .level-item {
+      padding: 16px 20px; background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 14px; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .level-item:hover { border-color: var(--primary); background: rgba(108,62,244,0.08); }
+    .level-item.selected { border-color: var(--primary); background: rgba(108,62,244,0.15); }
+    .level-icon { font-size: 24px; }
+    .level-title { font-size: 14px; font-weight: 700; color: white; }
+    .level-desc { font-size: 12px; color: var(--text-muted); }
+    .level-bar-wrap { flex: 1; }
+    .level-dots { display: flex; gap: 4px; margin-top: 4px; }
+    .level-dot { width: 12px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); }
+    .level-dot.filled { background: var(--primary-light); }
+
+    @media (max-width: 900px) {
+      .onboard-visual { display: none; }
+      .onboard-form-area { padding: 32px 24px; }
+    }
+    @media (max-width: 480px) {
+      .goal-grid { grid-template-columns: 1fr; }
+      .avatar-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Minimal nav -->
+<div style="position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,6,20,0.7);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);">
+  <a href="index.html" class="navbar-brand">
+    <div class="brand-logo">🎤</div>
+    <span class="brand-name">Speak<span>Guru</span> AI</span>
+  </a>
+  <a href="login.html" style="font-size:13px;color:var(--text-muted);">Already have an account? <span style="color:var(--primary-light);">Login →</span></a>
+</div>
+
+<div class="onboard-wrap" style="padding-top:64px;">
+  <!-- Left Visual Panel -->
+  <div class="onboard-visual">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Your Journey Starts Here</div>
+      <h2 style="font-size:1.8rem;line-height:1.2;">From hesitant<br>to <span class="grad-text">confident</span><br>in 30 days</h2>
+      <p style="font-size:14px;color:var(--text-secondary);margin-top:12px;line-height:1.7;">Takes 2 minutes to set up. No payment info needed.</p>
+    </div>
+    <div class="visual-steps" id="visual-steps">
+      <div class="visual-step active" data-step="1">
+        <div class="visual-step-dot">1</div>
+        <div>
+          <h5>Create Your Profile</h5>
+          <p>Tell us your name, city &amp; how to reach you</p>
+        </div>
+      </div>
+      <div class="visual-step" data-step="2">
+        <div class="visual-step-dot">2</div>
+        <div>
+          <h5>Set Your Goal</h5>
+          <p>What do you want to achieve with English?</p>
+        </div>
+      </div>
+      <div class="visual-step" data-step="3">
+        <div class="visual-step-dot">3</div>
+        <div>
+          <h5>Your Background</h5>
+          <p>Mother tongue &amp; current English level</p>
+        </div>
+      </div>
+      <div class="visual-step" data-step="4">
+        <div class="visual-step-dot">4</div>
+        <div>
+          <h5>Take Assessment</h5>
+          <p>3-minute spoken test to calibrate your plan</p>
+        </div>
+      </div>
+    </div>
+    <div class="visual-quote">
+      "I was scared to speak English in interviews. SpeakGuru gave me a personalized plan and I cleared my first MNC interview within 6 weeks!"
+      <div class="visual-quote-author">— Rahul M., Software Engineer, Hyderabad</div>
+    </div>
+  </div>
+
+  <!-- Right Form Area -->
+  <div class="onboard-form-area">
+    <div class="onboard-form-inner">
+      <!-- Step indicators -->
+      <div class="step-indicator">
+        <div class="step-dot active" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+        <div class="step-dot" id="dot-4"></div>
+      </div>
+
+      <!-- Step 1: Profile -->
+      <div class="form-step active" id="step-1">
+        <div class="step-title">Let's get you started 👋</div>
+        <div class="step-desc">First, tell us a bit about yourself.</div>
+
+        <div style="margin-bottom:20px;">
+          <div class="form-label">Choose your avatar</div>
+          <div class="avatar-grid" id="avatar-picker">
+            <div class="avatar-opt selected" data-val="🎯">🎯</div>
+            <div class="avatar-opt" data-val="👩">👩</div>
+            <div class="avatar-opt" data-val="👨">👨</div>
+            <div class="avatar-opt" data-val="👩‍💼">👩‍💼</div>
+            <div class="avatar-opt" data-val="👨‍💼">👨‍💼</div>
+            <div class="avatar-opt" data-val="👩‍🎓">👩‍🎓</div>
+            <div class="avatar-opt" data-val="👨‍🎓">👨‍🎓</div>
+            <div class="avatar-opt" data-val="🦁">🦁</div>
+            <div class="avatar-opt" data-val="🐯">🐯</div>
+            <div class="avatar-opt" data-val="🦋">🦋</div>
+            <div class="avatar-opt" data-val="🌟">🌟</div>
+            <div class="avatar-opt" data-val="🚀">🚀</div>
+            <div class="avatar-opt" data-val="🏆">🏆</div>
+            <div class="avatar-opt" data-val="💡">💡</div>
+            <div class="avatar-opt" data-val="🎸">🎸</div>
+            <div class="avatar-opt" data-val="⚡">⚡</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" type="text" id="inp-name" placeholder="e.g. Priya Sharma" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" id="inp-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Phone (Optional)</label>
+            <input class="form-input" type="tel" id="inp-phone" placeholder="+91 98765 43210" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input class="form-input" type="text" id="inp-city" placeholder="e.g. Mumbai" />
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="nextStep(1)">
+          Continue <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- Step 2: Goal -->
+      <div class="form-step" id="step-2">
+        <div class="step-title">What's your #1 goal? 🎯</div>
+        <div class="step-desc">We'll build your entire learning plan around this.</div>
+
+        <div class="goal-grid" id="goal-grid">
+          <div class="goal-btn selected" data-val="Job Interview">
+            <span class="goal-btn-icon">💼</span>
+            <div class="goal-btn-title">Job Interview</div>
+            <div class="goal-btn-desc">Crack that dream job</div>
+          </div>
+          <div class="goal-btn" data-val="Workplace Communication">
+            <span class="goal-btn-icon">🏢</span>
+            <div class="goal-btn-title">Workplace English</div>
+            <div class="goal-btn-desc">Communicate at work</div>
+          </div>
+          <div class="goal-btn" data-val="IELTS/TOEFL">
+            <span class="goal-btn-icon">📝</span>
+            <div class="goal-btn-title">IELTS / TOEFL</div>
+            <div class="goal-btn-desc">Study abroad preparation</div>
+          </div>
+          <div class="goal-btn" data-val="Daily Conversation">
+            <span class="goal-btn-icon">💬</span>
+            <div class="goal-btn-title">Daily Conversation</div>
+            <div class="goal-btn-desc">Speak confidently everyday</div>
+          </div>
+          <div class="goal-btn" data-val="Public Speaking">
+            <span class="goal-btn-icon">🎤</span>
+            <div class="goal-btn-title">Public Speaking</div>
+            <div class="goal-btn-desc">Present &amp; lead meetings</div>
+          </div>
+          <div class="goal-btn" data-val="Business English">
+            <span class="goal-btn-icon">📊</span>
+            <div class="goal-btn-title">Business English</div>
+            <div class="goal-btn-desc">Grow your career globally</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <button class="btn btn-secondary" onclick="prevStep(2)" style="flex:1;">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="btn btn-primary" onclick="nextStep(2)" style="flex:2;">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Background -->
+      <div class="form-step" id="step-3">
+        <div class="step-title">Your language background 🌍</div>
+        <div class="step-desc">This helps us find common patterns and fix them faster.</div>
+
+        <div class="form-label">What is your mother tongue?</div>
+        <div class="lang-grid" id="lang-grid">
+          <div class="lang-chip selected" data-val="Hindi">🇮🇳 Hindi</div>
+          <div class="lang-chip" data-val="Tamil">தமிழ் Tamil</div>
+          <div class="lang-chip" data-val="Telugu">తెలుగు Telugu</div>
+          <div class="lang-chip" data-val="Kannada">ಕನ್ನಡ Kannada</div>
+          <div class="lang-chip" data-val="Malayalam">മലയാളം</div>
+          <div class="lang-chip" data-val="Bengali">বাংলা Bengali</div>
+          <div class="lang-chip" data-val="Marathi">मराठी Marathi</div>
+          <div class="lang-chip" data-val="Gujarati">ગુજરાતી</div>
+          <div class="lang-chip" data-val="Punjabi">ਪੰਜਾਬੀ Punjabi</div>
+          <div class="lang-chip" data-val="Other">Other</div>
+        </div>
+
+        <div class="form-label" style="margin-top:20px;">Current English speaking level?</div>
+        <div class="level-grid" id="level-grid">
+          <div class="level-item" data-val="Beginner">
+            <div class="level-icon">🌱</div>
+            <div>
+              <div class="level-title">Beginner</div>
+              <div class="level-desc">I know very basic English</div>
+            </div>
+            <div class="level-dots"><div class="level-dot filled"></div><div class="level-dot"></div><div class="level-dot"></div><div class="level-dot"></div><div class="level-dot"></div></div>
+          </div>
+          <div class="level-item selected" data-val="Elementary">
+            <div class="level-icon">🌿</div>
+            <div>
+              <div class="level-title">Elementary</div>
+              <div class="level-desc">I can handle simple conversations</div>
+            </div>
+            <div class="level-dots"><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot"></div><div class="level-dot"></div><div class="level-dot"></div></div>
+          </div>
+          <div class="level-item" data-val="Intermediate">
+            <div class="level-icon">🌳</div>
+            <div>
+              <div class="level-title">Intermediate</div>
+              <div class="level-desc">I can communicate but make mistakes</div>
+            </div>
+            <div class="level-dots"><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot"></div><div class="level-dot"></div></div>
+          </div>
+          <div class="level-item" data-val="Upper-Intermediate">
+            <div class="level-icon">🎯</div>
+            <div>
+              <div class="level-title">Upper-Intermediate</div>
+              <div class="level-desc">I speak well but need polish</div>
+            </div>
+            <div class="level-dots"><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot"></div></div>
+          </div>
+          <div class="level-item" data-val="Advanced">
+            <div class="level-icon">🚀</div>
+            <div>
+              <div class="level-title">Advanced</div>
+              <div class="level-desc">I'm fluent, want to perfect it</div>
+            </div>
+            <div class="level-dots"><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div><div class="level-dot filled"></div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button class="btn btn-secondary" onclick="prevStep(3)" style="flex:1;">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="btn btn-primary" onclick="nextStep(3)" style="flex:2;">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Confirm -->
+      <div class="form-step" id="step-4">
+        <div class="step-title">You're almost in! 🎉</div>
+        <div class="step-desc">Review your profile before we create your personalized plan.</div>
+
+        <div id="profile-summary" style="background:rgba(108,62,244,0.08);border:1px solid rgba(108,62,244,0.25);border-radius:16px;padding:24px;margin-bottom:28px;">
+          <!-- Filled by JS -->
+        </div>
+
+        <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:16px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
+          <span style="font-size:20px;">🎯</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:4px;">What happens next:</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">You'll take a quick <strong style="color:white;">3-minute spoken assessment</strong> that calibrates your exact level, then we'll generate your <strong style="color:white;">personalized 30-day plan</strong> instantly.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <button class="btn btn-secondary" onclick="prevStep(4)" style="flex:1;">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="btn btn-primary btn-lg" onclick="createAccount()" style="flex:2;" id="create-btn">
+            🚀 Create My Account
+          </button>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:16px;">
+          By signing up, you agree to our <a href="#" style="color:var(--primary-light);">Terms</a> &amp; <a href="#" style="color:var(--primary-light);">Privacy Policy</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+const formData = {
+  avatar: '🎯',
+  name: '',
+  email: '',
+  phone: '',
+  city: '',
+  learning_goal: 'Job Interview',
+  native_language: 'Hindi',
+  english_level: 'Elementary',
+  currentStep: 1,
+  totalSteps: 4
+};
+
+// ---- Avatar picker ----
+document.getElementById('avatar-picker').addEventListener('click', e => {
+  const opt = e.target.closest('.avatar-opt');
+  if (!opt) return;
+  document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
+  opt.classList.add('selected');
+  formData.avatar = opt.dataset.val;
+});
+
+// ---- Goal picker ----
+document.getElementById('goal-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.goal-btn');
+  if (!btn) return;
+  document.querySelectorAll('.goal-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  formData.learning_goal = btn.dataset.val;
+});
+
+// ---- Language picker ----
+document.getElementById('lang-grid').addEventListener('click', e => {
+  const chip = e.target.closest('.lang-chip');
+  if (!chip) return;
+  document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  formData.native_language = chip.dataset.val;
+});
+
+// ---- Level picker ----
+document.getElementById('level-grid').addEventListener('click', e => {
+  const item = e.target.closest('.level-item');
+  if (!item) return;
+  document.querySelectorAll('.level-item').forEach(i => i.classList.remove('selected'));
+  item.classList.add('selected');
+  formData.english_level = item.dataset.val;
+});
+
+// ---- Step navigation ----
+function nextStep(current) {
+  if (current === 1) {
+    const name = document.getElementById('inp-name').value.trim();
+    const email = document.getElementById('inp-email').value.trim();
+    if (!name) { Toast.error('Name required', 'Please enter your full name'); return; }
+    if (!email || !email.includes('@')) { Toast.error('Valid email required', 'Please enter a valid email address'); return; }
+    formData.name = name;
+    formData.email = email;
+    formData.phone = document.getElementById('inp-phone').value.trim();
+    formData.city = document.getElementById('inp-city').value.trim();
+  }
+  goToStep(current + 1);
+}
+
+function prevStep(current) {
+  goToStep(current - 1);
+}
+
+function goToStep(step) {
+  // Hide current
+  document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+  // Show target
+  document.getElementById(`step-${step}`).classList.add('active');
+  formData.currentStep = step;
+  // Update indicators
+  for (let i = 1; i <= formData.totalSteps; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.classList.remove('active', 'done');
+    if (i < step) dot.classList.add('done');
+    else if (i === step) dot.classList.add('active');
+  }
+  // Update sidebar steps
+  document.querySelectorAll('.visual-step').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.step) === step);
+  });
+  // Build summary on step 4
+  if (step === 4) buildSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildSummary() {
+  const el = document.getElementById('profile-summary');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,#6C3EF4,#3B82F6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;">${formData.avatar}</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:white;">${formData.name}</div>
+        <div style="font-size:13px;color:var(--text-muted);">${formData.email}</div>
+        ${formData.city ? `<div style="font-size:12px;color:var(--text-muted);">📍 ${formData.city}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Goal</div>
+        <div style="font-size:13px;color:white;font-weight:600;">${formData.learning_goal}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Mother Tongue</div>
+        <div style="font-size:13px;color:white;font-weight:600;">${formData.native_language}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Current Level</div>
+        <div style="font-size:13px;color:white;font-weight:600;">${formData.english_level}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Plan Duration</div>
+        <div style="font-size:13px;color:white;font-weight:600;">30 Days</div>
+      </div>
+    </div>
+  `;
+}
+
+async function createAccount() {
+  const btn = document.getElementById('create-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner spinner-sm" style="border-top-color:white;"></div> Creating your account...';
+
+  try {
+    const result = await Auth.register(formData);
+    if (result.success) {
+      Toast.success('Account created!', 'Taking you to your assessment...');
+      setTimeout(() => {
+        window.location.href = 'assessment.html';
+      }, 1500);
+    } else {
+      Toast.error('Registration failed', result.message);
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Create My Account';
+    }
+  } catch(e) {
+    Toast.error('Something went wrong', e.message);
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Create My Account';
+  }
+}
+</script>
+</body>
+</html>

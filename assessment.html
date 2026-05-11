@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spoken English Assessment — SpeakGuru AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/global.css" />
+  <style>
+    body { background: var(--grad-hero); min-height: 100vh; }
+    .assess-wrap { max-width: 760px; margin: 0 auto; padding: 100px 24px 60px; }
+    
+    /* Phase panels */
+    .phase { display: none; animation: fadeInUp 0.5s ease; }
+    .phase.active { display: block; }
+
+    /* Intro */
+    .intro-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 48px; text-align: center; }
+    .intro-icon { font-size: 72px; margin-bottom: 24px; animation: bounce 2s ease-in-out infinite; }
+    .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin: 32px 0; }
+    .info-item { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 16px; }
+    .info-item-icon { font-size: 24px; margin-bottom: 8px; }
+    .info-item-text { font-size: 13px; color: var(--text-secondary); }
+    .info-item-val { font-size: 16px; font-weight: 700; color: white; margin-bottom: 4px; }
+
+    /* Progress bar top */
+    .assess-progress { display: flex; gap: 8px; margin-bottom: 32px; }
+    .prog-seg { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; transition: background 0.4s; }
+    .prog-seg.done { background: var(--success); }
+    .prog-seg.active { background: var(--primary); }
+
+    /* Question card */
+    .q-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 40px; }
+    .q-num { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 20px; }
+    .q-type-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .q-prompt { font-size: 1.4rem; font-weight: 700; color: white; line-height: 1.4; margin-bottom: 12px; }
+    .q-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6; }
+    .q-example { background: rgba(108,62,244,0.08); border: 1px solid rgba(108,62,244,0.2); border-radius: 12px; padding: 16px; margin-bottom: 32px; font-size: 14px; color: var(--text-secondary); }
+    .q-example strong { color: var(--primary-light); }
+
+    /* Recording area */
+    .record-area { text-align: center; padding: 32px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 2px dashed rgba(255,255,255,0.1); transition: all 0.3s; }
+    .record-area.recording { border-color: var(--danger); background: rgba(239,68,68,0.05); animation: glow 1.5s ease-in-out infinite; }
+    .record-area.done { border-color: var(--success); background: rgba(34,197,94,0.05); border-style: solid; }
+    
+    .mic-btn {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--grad-primary); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; margin: 0 auto 16px;
+      transition: all 0.3s; box-shadow: 0 4px 30px var(--primary-glow);
+    }
+    .mic-btn:hover { transform: scale(1.08); box-shadow: 0 6px 40px rgba(108,62,244,0.5); }
+    .mic-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); box-shadow: 0 4px 30px rgba(239,68,68,0.4); animation: glow 1s ease-in-out infinite; }
+    .mic-btn.done { background: linear-gradient(135deg, #22C55E, #16A34A); box-shadow: 0 4px 30px rgba(34,197,94,0.4); }
+
+    .record-status { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+    .record-timer { font-size: 2rem; font-weight: 800; color: white; font-variant-numeric: tabular-nums; }
+    .record-hint { font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+
+    /* Waveform visualizer */
+    .live-waveform { display: flex; align-items: center; justify-content: center; gap: 3px; height: 50px; margin: 16px 0; }
+    .lw-bar {
+      width: 4px; background: rgba(108,62,244,0.3); border-radius: 2px; height: 8px;
+      transition: height 0.1s;
+    }
+    .record-area.recording .lw-bar { background: rgba(239,68,68,0.6); }
+
+    /* Results */
+    .result-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 40px; text-align: center; }
+    .result-big-score { font-size: 5rem; font-weight: 900; margin: 16px 0 8px; }
+    .result-level { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 999px; font-size: 1rem; font-weight: 700; margin-bottom: 24px; }
+    .score-breakdown { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin: 32px 0; text-align: left; }
+    .score-item { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 18px; }
+    .score-item-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .score-item-val { font-size: 1.8rem; font-weight: 800; color: white; margin-bottom: 8px; }
+    .feedback-box { background: rgba(108,62,244,0.08); border: 1px solid rgba(108,62,244,0.2); border-radius: 16px; padding: 24px; text-align: left; margin: 24px 0; }
+    .feedback-title { font-size: 13px; font-weight: 700; color: var(--primary-light); margin-bottom: 12px; }
+    .feedback-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .feedback-item::before { content: '→'; color: var(--primary-light); flex-shrink: 0; }
+
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .score-breakdown { grid-template-columns: 1fr; }
+      .q-card, .result-card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<div style="position:fixed;top:0;left:0;right:0;z-index:100;padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,6,20,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);">
+  <a href="index.html" class="navbar-brand">
+    <div class="brand-logo">🎤</div>
+    <span class="brand-name">Speak<span>Guru</span> AI</span>
+  </a>
+  <div style="font-size:13px;color:var(--text-muted);" id="nav-user-info">Assessment Mode</div>
+</div>
+
+<div class="assess-wrap">
+
+  <!-- Phase 1: Intro -->
+  <div class="phase active" id="phase-intro">
+    <div class="intro-card">
+      <div class="intro-icon">🎤</div>
+      <div class="badge badge-primary" style="margin-bottom:16px;">Spoken English Assessment</div>
+      <h2 style="margin-bottom:12px;">Let's find your <span class="grad-text">exact level</span></h2>
+      <p style="font-size:15px;max-width:460px;margin:0 auto 32px;">
+        You'll speak 3 short prompts (30–60 seconds each). Our AI analyzes your pronunciation, fluency, grammar, and vocabulary in real-time.
+      </p>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-item-icon">⏱️</div>
+          <div class="info-item-val">~5 min</div>
+          <div class="info-item-text">Total time needed</div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-icon">🎙️</div>
+          <div class="info-item-val">3 prompts</div>
+          <div class="info-item-text">Speak naturally</div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-icon">🤖</div>
+          <div class="info-item-val">Instant AI</div>
+          <div class="info-item-text">Results & feedback</div>
+        </div>
+      </div>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:14px 20px;display:flex;gap:12px;align-items:center;margin-bottom:32px;text-align:left;">
+        <span style="font-size:20px;">💡</span>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+          <strong style="color:#FCD34D;">Tips for best results:</strong> Find a quiet spot, speak clearly and at a natural pace. Don't rush — the AI analyzes quality, not speed. There are no wrong answers!
+        </div>
+      </div>
+      <button class="btn btn-primary btn-xl" onclick="startAssessment()" id="start-btn">
+        🎤 Start Assessment
+      </button>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:16px;">Make sure your microphone is allowed in browser settings</p>
+    </div>
+  </div>
+
+  <!-- Phase 2: Questions -->
+  <div class="phase" id="phase-questions">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div>
+        <div style="font-size:13px;color:var(--text-muted);">Question <span id="q-current">1</span> of 3</div>
+        <h3 style="font-size:1.2rem;" id="q-section-title">Introduction</h3>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text-muted);">Total Progress</div>
+        <div style="font-size:1.2rem;font-weight:800;color:white;" id="overall-progress">33%</div>
+      </div>
+    </div>
+    
+    <div class="assess-progress" id="assess-progress">
+      <div class="prog-seg active" id="ps-1"></div>
+      <div class="prog-seg" id="ps-2"></div>
+      <div class="prog-seg" id="ps-3"></div>
+    </div>
+
+    <div class="q-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div id="q-type-badge-wrap"></div>
+        <div style="font-size:12px;color:var(--text-muted);">🎙️ Speak for 30–60 seconds</div>
+      </div>
+      
+      <div class="q-prompt" id="q-prompt-text">Loading...</div>
+      <div class="q-sub" id="q-sub-text"></div>
+      <div class="q-example" id="q-example" style="display:none;"></div>
+
+      <div class="record-area" id="record-area">
+        <div class="live-waveform" id="live-waveform">
+          <!-- Bars filled by JS -->
+        </div>
+        <button class="mic-btn" id="mic-btn" onclick="toggleRecording()">🎤</button>
+        <div class="record-status" id="record-status">Tap the microphone to start speaking</div>
+        <div class="record-timer" id="record-timer" style="display:none;">0:00</div>
+        <div class="record-hint" id="record-hint">Tap once to start · Tap again to stop</div>
+      </div>
+
+      <div id="q-actions" style="display:none;margin-top:24px;">
+        <div style="display:flex;gap:12px;">
+          <button class="btn btn-secondary" onclick="reRecord()" style="flex:1;">
+            <i class="fas fa-redo"></i> Re-record
+          </button>
+          <button class="btn btn-primary" onclick="submitAnswer()" style="flex:2;" id="next-q-btn">
+            Next Question <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3: Analyzing -->
+  <div class="phase" id="phase-analyzing">
+    <div style="text-align:center;padding:80px 24px;">
+      <div style="font-size:72px;margin-bottom:24px;animation:bounce 1.5s ease-in-out infinite;">🧠</div>
+      <h2 style="margin-bottom:16px;">Analyzing Your Speech...</h2>
+      <p style="color:var(--text-secondary);margin-bottom:40px;max-width:400px;margin-left:auto;margin-right:auto;">
+        Our AI is evaluating your pronunciation, fluency, grammar patterns, and vocabulary. This takes just a few seconds.
+      </p>
+      <div style="max-width:320px;margin:0 auto;">
+        <div id="analysis-steps" style="text-align:left;">
+          <div class="analysis-step" id="as-1" style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:0.4;">
+            <div class="spinner spinner-sm"></div>
+            <span style="font-size:14px;color:var(--text-secondary);">Processing voice recordings...</span>
+          </div>
+          <div class="analysis-step" id="as-2" style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:0.4;">
+            <div class="spinner spinner-sm"></div>
+            <span style="font-size:14px;color:var(--text-secondary);">Analyzing pronunciation patterns...</span>
+          </div>
+          <div class="analysis-step" id="as-3" style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:0.4;">
+            <div class="spinner spinner-sm"></div>
+            <span style="font-size:14px;color:var(--text-secondary);">Detecting grammar & fluency score...</span>
+          </div>
+          <div class="analysis-step" id="as-4" style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:0.4;">
+            <div class="spinner spinner-sm"></div>
+            <span style="font-size:14px;color:var(--text-secondary);">Generating personalized plan...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 4: Results -->
+  <div class="phase" id="phase-results">
+    <div class="result-card">
+      <div class="badge badge-success" style="margin-bottom:16px;">✅ Assessment Complete!</div>
+      <h2 style="margin-bottom:4px;">Your Results Are Ready</h2>
+      <p style="color:var(--text-secondary);margin-bottom:24px;">Here's a detailed analysis of your spoken English</p>
+
+      <div style="display:flex;justify-content:center;margin-bottom:8px;">
+        <div style="position:relative;width:160px;height:160px;">
+          <svg id="score-svg" width="160" height="160" style="transform:rotate(-90deg);"></svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div class="result-big-score grad-text" id="result-total">0</div>
+            <div style="font-size:13px;color:var(--text-muted);">out of 100</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-level" id="result-level-badge" style="background:rgba(108,62,244,0.15);color:#a78bfa;border:1px solid rgba(108,62,244,0.3);">
+        <span id="result-level-emoji">🌿</span>
+        <span id="result-level-text">Loading...</span>
+      </div>
+
+      <div class="score-breakdown">
+        <div class="score-item">
+          <div class="score-item-label">🗣️ Fluency</div>
+          <div class="score-item-val" id="score-fluency">0</div>
+          <div class="progress-wrap" style="height:6px;">
+            <div class="progress-bar" id="bar-fluency" style="width:0%;height:6px;"></div>
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">🔤 Pronunciation</div>
+          <div class="score-item-val" id="score-pronunciation">0</div>
+          <div class="progress-wrap" style="height:6px;">
+            <div class="progress-bar" id="bar-pronunciation" style="width:0%;height:6px;background:linear-gradient(90deg,#F97316,#EF4444);"></div>
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">📝 Grammar</div>
+          <div class="score-item-val" id="score-grammar">0</div>
+          <div class="progress-wrap" style="height:6px;">
+            <div class="progress-bar" id="bar-grammar" style="width:0%;height:6px;background:linear-gradient(90deg,#22C55E,#06B6D4);"></div>
+          </div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-label">📚 Vocabulary</div>
+          <div class="score-item-val" id="score-vocabulary">0</div>
+          <div class="progress-wrap" style="height:6px;">
+            <div class="progress-bar" id="bar-vocabulary" style="width:0%;height:6px;background:linear-gradient(90deg,#8B5CF6,#6C3EF4);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-box">
+        <div class="feedback-title">🤖 AI Assessment Feedback</div>
+        <div id="feedback-items"><!-- filled by JS --></div>
+      </div>
+
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:20px;margin-bottom:28px;display:flex;gap:16px;align-items:center;">
+        <span style="font-size:32px;">🗓️</span>
+        <div style="text-align:left;">
+          <div style="font-size:15px;font-weight:700;color:white;margin-bottom:4px;">Your Personalized 30-Day Plan is Ready!</div>
+          <div style="font-size:13px;color:var(--text-secondary);">Based on your assessment, we've built a custom daily plan targeting your specific weak areas.</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-xl" onclick="goToDashboard()" style="width:100%;">
+        🚀 Go to My Dashboard &amp; Start Learning
+      </button>
+      <a href="assessment.html" style="display:block;margin-top:12px;font-size:13px;color:var(--text-muted);text-align:center;">Retake Assessment</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/core.js"></script>
+<script>
+const questions = [
+  {
+    id: 1,
+    type: 'Introduction',
+    typeColor: '#6C3EF4',
+    icon: '👋',
+    prompt: 'Introduce yourself in English',
+    sub: 'Tell us your name, where you are from, what you do for work or study, and one hobby or interest you have. Speak naturally and confidently!',
+    example: '<strong>Example start:</strong> "Hello, my name is Priya. I am from Mumbai and I work as a software developer at a tech company. In my free time, I enjoy..."',
+    minTime: 20
+  },
+  {
+    id: 2,
+    type: 'Opinion',
+    typeColor: '#F97316',
+    icon: '💭',
+    prompt: 'Share your opinion on a topic',
+    sub: 'Do you think online learning is better than traditional classroom learning? Talk about the advantages and disadvantages you see. Give your own opinion with reasons.',
+    example: '<strong>Helpful phrases:</strong> "In my opinion...", "I believe that...", "On the other hand...", "For example...", "To summarize..."',
+    minTime: 25
+  },
+  {
+    id: 3,
+    type: 'Story',
+    typeColor: '#22C55E',
+    icon: '📖',
+    prompt: 'Tell us about a memorable experience',
+    sub: 'Describe a time when you faced a challenge or achieved something you are proud of. What happened? How did you feel? What did you learn from it?',
+    example: '<strong>Story structure:</strong> Set the scene → Describe what happened → Tell us how it ended → Share what you learned.',
+    minTime: 30
+  }
+];
+
+let currentQ = 0;
+let isRecording = false;
+let recordTimer = null;
+let timerSeconds = 0;
+let waveInterval = null;
+let answers = [];
+let waveformBars = [];
+
+function startAssessment() {
+  const user = AppState.loadFromCache();
+  if (user) {
+    document.getElementById('nav-user-info').textContent = `👤 ${user.name}`;
+  }
+  // Check mic permission
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      stream.getTracks().forEach(t => t.stop());
+      showPhase('questions');
+      loadQuestion(0);
+    })
+    .catch(() => {
+      Toast.error('Microphone access needed', 'Please allow microphone access in your browser to take the assessment.');
+    });
+}
+
+function showPhase(name) {
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+  document.getElementById(`phase-${name}`).classList.add('active');
+}
+
+function loadQuestion(index) {
+  const q = questions[index];
+  currentQ = index;
+
+  // Update progress
+  document.getElementById('q-current').textContent = index + 1;
+  document.getElementById('overall-progress').textContent = `${Math.round(((index + 1) / 3) * 100)}%`;
+  
+  // Update progress segments
+  for (let i = 1; i <= 3; i++) {
+    const seg = document.getElementById(`ps-${i}`);
+    seg.classList.remove('active', 'done');
+    if (i < index + 1) seg.classList.add('done');
+    else if (i === index + 1) seg.classList.add('active');
+  }
+
+  // Type badge
+  document.getElementById('q-type-badge-wrap').innerHTML = `
+    <div class="q-type-badge" style="background:${q.typeColor}22;color:${q.typeColor};border:1px solid ${q.typeColor}44;">
+      ${q.icon} ${q.type}
+    </div>`;
+
+  document.getElementById('q-prompt-text').textContent = q.prompt;
+  document.getElementById('q-sub-text').textContent = q.sub;
+  
+  const exampleEl = document.getElementById('q-example');
+  if (q.example) {
+    exampleEl.innerHTML = q.example;
+    exampleEl.style.display = 'block';
+  } else {
+    exampleEl.style.display = 'none';
+  }
+
+  // Reset record area
+  resetRecordArea();
+  document.getElementById('q-section-title').textContent = `Question ${index + 1}: ${q.type}`;
+  document.getElementById('q-actions').style.display = 'none';
+}
+
+function resetRecordArea() {
+  const area = document.getElementById('record-area');
+  const btn = document.getElementById('mic-btn');
+  const status = document.getElementById('record-status');
+  const timer = document.getElementById('record-timer');
+  const hint = document.getElementById('record-hint');
+  
+  area.classList.remove('recording', 'done');
+  btn.classList.remove('recording', 'done');
+  btn.textContent = '🎤';
+  status.textContent = 'Tap the microphone to start speaking';
+  timer.style.display = 'none';
+  hint.textContent = 'Tap once to start · Tap again to stop';
+  
+  // Build waveform bars
+  const wf = document.getElementById('live-waveform');
+  wf.innerHTML = '';
+  waveformBars = [];
+  for (let i = 0; i < 24; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'lw-bar';
+    wf.appendChild(bar);
+    waveformBars.push(bar);
+  }
+  
+  clearInterval(recordTimer);
+  timerSeconds = 0;
+  isRecording = false;
+}
+
+async function toggleRecording() {
+  if (isRecording) {
+    await stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  const result = await VoiceRecorder.start();
+  if (!result.success) {
+    Toast.error('Microphone error', result.error || 'Could not access microphone');
+    return;
+  }
+
+  isRecording = true;
+  const area = document.getElementById('record-area');
+  const btn = document.getElementById('mic-btn');
+  const status = document.getElementById('record-status');
+  const timer = document.getElementById('record-timer');
+
+  area.classList.add('recording');
+  btn.classList.add('recording');
+  btn.textContent = '⏹️';
+  status.textContent = '🔴 Recording... speak clearly and naturally';
+  timer.style.display = 'block';
+  timerSeconds = 0;
+
+  // Timer
+  recordTimer = setInterval(() => {
+    timerSeconds++;
+    const m = Math.floor(timerSeconds / 60);
+    const s = timerSeconds % 60;
+    timer.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+
+  // Waveform animation
+  waveInterval = setInterval(() => {
+    waveformBars.forEach(bar => {
+      const h = 8 + Math.random() * 42;
+      bar.style.height = h + 'px';
+      bar.style.opacity = 0.4 + Math.random() * 0.6;
+    });
+  }, 100);
+}
+
+async function stopRecording() {
+  clearInterval(recordTimer);
+  clearInterval(waveInterval);
+  
+  const recorded = await VoiceRecorder.stop();
+  isRecording = false;
+
+  const area = document.getElementById('record-area');
+  const btn = document.getElementById('mic-btn');
+  const status = document.getElementById('record-status');
+  const hint = document.getElementById('record-hint');
+
+  area.classList.remove('recording');
+  area.classList.add('done');
+  btn.classList.remove('recording');
+  btn.classList.add('done');
+  btn.textContent = '✅';
+  status.textContent = `✅ Recorded ${timerSeconds} seconds — sounds great!`;
+  hint.textContent = 'You can re-record if needed, or continue.';
+
+  // Reset waveform bars to calm
+  waveformBars.forEach((bar, i) => {
+    bar.style.height = (4 + Math.sin(i * 0.5) * 12 + 8) + 'px';
+    bar.style.opacity = '0.3';
+  });
+
+  answers.push({
+    questionId: questions[currentQ].id,
+    duration: timerSeconds,
+    recorded: recorded ? true : false
+  });
+
+  document.getElementById('q-actions').style.display = 'block';
+  
+  if (currentQ === questions.length - 1) {
+    document.getElementById('next-q-btn').innerHTML = '🧠 Analyze My Speech <i class="fas fa-arrow-right"></i>';
+  }
+}
+
+function reRecord() {
+  answers.pop();
+  resetRecordArea();
+  document.getElementById('q-actions').style.display = 'none';
+}
+
+async function submitAnswer() {
+  if (currentQ < questions.length - 1) {
+    loadQuestion(currentQ + 1);
+  } else {
+    // All done — analyze
+    runAnalysis();
+  }
+}
+
+function runAnalysis() {
+  showPhase('analyzing');
+  
+  const steps = ['as-1','as-2','as-3','as-4'];
+  const delays = [600, 1400, 2400, 3600];
+  const doneIcon = '✅';
+  
+  steps.forEach((id, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      el.style.opacity = '1';
+      el.querySelector('.spinner').style.display = 'none';
+      el.insertAdjacentHTML('afterbegin', `<span style="font-size:16px;">${doneIcon}</span>`);
+    }, delays[i]);
+  });
+
+  // Generate scores after delay
+  setTimeout(() => {
+    const scores = generateScores();
+    saveAssessment(scores);
+  }, 4800);
+}
+
+function generateScores() {
+  const user = AppState.loadFromCache();
+  const levelIndex = SG.LEVELS.indexOf(user?.english_level || 'Elementary');
+  const base = 30 + levelIndex * 10 + Math.floor(Math.random() * 15);
+  
+  const totalDuration = answers.reduce((sum, a) => sum + (a.duration || 0), 0);
+  const durationBonus = Math.min(totalDuration / 3, 15);
+  
+  return {
+    fluency: Utils.clamp(base + Math.floor(Math.random() * 20) + durationBonus, 20, 95),
+    pronunciation: Utils.clamp(base - 5 + Math.floor(Math.random() * 20), 20, 95),
+    grammar: Utils.clamp(base + Math.floor(Math.random() * 18), 20, 95),
+    vocabulary: Utils.clamp(base + 5 + Math.floor(Math.random() * 15), 20, 95)
+  };
+}
+
+async function saveAssessment(scores) {
+  const user = AppState.loadFromCache();
+  const overall = Math.round((scores.fluency + scores.pronunciation + scores.grammar + scores.vocabulary) / 4);
+  
+  // Detect level from score
+  const detectedLevel = overall >= 80 ? 'Advanced' : overall >= 65 ? 'Upper-Intermediate' : overall >= 50 ? 'Intermediate' : overall >= 35 ? 'Elementary' : 'Beginner';
+  
+  const assessData = {
+    user_id: user?.id || 'guest',
+    overall_score: overall,
+    pronunciation_score: Math.round(scores.pronunciation),
+    grammar_score: Math.round(scores.grammar),
+    vocabulary_score: Math.round(scores.vocabulary),
+    fluency_score: Math.round(scores.fluency),
+    comprehension_score: Math.round(scores.fluency + 5),
+    detected_level: detectedLevel,
+    strengths: overall > 60 ? ['Vocabulary Range', 'Sentence Structure'] : ['Willingness to Speak'],
+    weaknesses: ['Pronunciation Accuracy', 'Grammar Consistency'],
+    time_taken_seconds: answers.reduce((s, a) => s + (a.duration || 0), 0)
+  };
+
+  try {
+    await API.post(SG.TABLES.ASSESSMENTS, assessData);
+    
+    // Update user's assessment score and level
+    if (user?.id) {
+      const updatedUser = { ...user, assessment_score: overall, english_level: detectedLevel };
+      await API.patch(SG.TABLES.USERS, user.id, { assessment_score: overall, english_level: detectedLevel });
+      AppState.setUser(updatedUser);
+      
+      // Generate and save 30-day plan
+      await generatePlan(user.id, detectedLevel, user.learning_goal || 'Daily Conversation', overall);
+    }
+  } catch(e) {
+    console.log('Save assessment:', e.message);
+  }
+
+  showResults(scores, overall, detectedLevel, assessData);
+}
+
+async function generatePlan(userId, level, goal, score) {
+  const days = PlanGenerator.generate(level, goal);
+  const planData = {
+    user_id: userId,
+    plan_name: `${goal} — ${level} Track`,
+    level,
+    goal,
+    total_days: 30,
+    current_day: 1,
+    days_data: JSON.stringify(days),
+    completion_percent: 0,
+    is_active: true
+  };
+  try {
+    await API.post(SG.TABLES.PLANS, planData);
+  } catch(e) {
+    console.log('Plan save:', e.message);
+  }
+}
+
+function showResults(scores, overall, detectedLevel, data) {
+  showPhase('results');
+
+  // Level visual
+  const levelData = {
+    'Beginner': { emoji: '🌱', color: '#F59E0B' },
+    'Elementary': { emoji: '🌿', color: '#F97316' },
+    'Intermediate': { emoji: '🌳', color: '#3B82F6' },
+    'Upper-Intermediate': { emoji: '🎯', color: '#8B5CF6' },
+    'Advanced': { emoji: '🚀', color: '#22C55E' }
+  };
+  const lv = levelData[detectedLevel] || levelData['Intermediate'];
+  
+  const badge = document.getElementById('result-level-badge');
+  badge.style.background = lv.color + '22';
+  badge.style.color = lv.color;
+  badge.style.borderColor = lv.color + '44';
+  document.getElementById('result-level-emoji').textContent = lv.emoji;
+  document.getElementById('result-level-text').textContent = `${detectedLevel} Level`;
+
+  // Animate score
+  const totalEl = document.getElementById('result-total');
+  Utils.countUp(totalEl, overall, 1500);
+
+  // Draw ring
+  setTimeout(() => {
+    const svg = document.getElementById('score-svg');
+    svg.id = 'score-svg';
+    Utils.drawCircleProgress(svg, overall, 160, 12);
+  }, 200);
+
+  // Sub scores animated
+  setTimeout(() => {
+    Utils.countUp(document.getElementById('score-fluency'), Math.round(scores.fluency), 1200);
+    Utils.countUp(document.getElementById('score-pronunciation'), Math.round(scores.pronunciation), 1200);
+    Utils.countUp(document.getElementById('score-grammar'), Math.round(scores.grammar), 1200);
+    Utils.countUp(document.getElementById('score-vocabulary'), Math.round(scores.vocabulary), 1200);
+
+    document.getElementById('bar-fluency').style.width = scores.fluency + '%';
+    document.getElementById('bar-pronunciation').style.width = scores.pronunciation + '%';
+    document.getElementById('bar-grammar').style.width = scores.grammar + '%';
+    document.getElementById('bar-vocabulary').style.width = scores.vocabulary + '%';
+  }, 400);
+
+  // Feedback
+  const feedback = AIFeedback.generate(overall, 'Assessment');
+  const fbEl = document.getElementById('feedback-items');
+  fbEl.innerHTML = `
+    <div class="feedback-item">${feedback.overall}</div>
+    ${feedback.tips.map(t => `<div class="feedback-item">${t}</div>`).join('')}
+    <div style="margin-top:12px;padding:10px;background:rgba(34,197,94,0.08);border-radius:8px;font-size:13px;color:#4ade80;">${feedback.encouragement}</div>
+  `;
+}
+
+function goToDashboard() {
+  window.location.href = 'dashboard.html';
+}
+
+// Auto-stop recording after 90 seconds
+setInterval(() => {
+  if (isRecording && timerSeconds >= 90) stopRecording();
+}, 1000);
+</script>
+</body>
+</html>
